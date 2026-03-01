@@ -9,10 +9,11 @@
 
 ## Prerequisites
 
-- Node.js (v18+)
+- Node.js
 - npm
-- Java 25 LTS
+- Java
 - Maven
+- MySQL Server + MySQL Workbench
 
 Check installed versions:
 
@@ -35,3 +36,10 @@ cd backend
 cd frontend
 npm install
 npm start
+```
+
+## MySQL Setup
+```
+
+
+```
