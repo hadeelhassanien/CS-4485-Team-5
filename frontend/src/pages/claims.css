@@ -1,0 +1,346 @@
+.claims-page {
+  min-height: 100vh;
+  background: #282a33;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  padding: 32px 36px 22px;
+  box-sizing: border-box;
+}
+
+.claims-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.claims-brand-logo {
+  height: 18px;
+  width: auto;
+}
+
+.claims-home-btn {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+}
+
+.claims-title {
+  margin: 14px 0 16px;
+  font-size: 36px;
+  line-height: 1.12;
+  font-weight: 700;
+  color: #f6f3ff;
+}
+
+.claims-title-accent {
+  color: #c8bde7;
+}
+
+.claims-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.claims-card {
+  background: #1f2129;
+  border: 2px solid #414552;
+  border-radius: 32px;
+  box-shadow: 0 6px 10px 5px rgba(0, 0, 0, 0.25);
+  padding: 26px 28px;
+  min-height: 560px;
+  box-sizing: border-box;
+}
+
+.claims-card--left {
+  display: flex;
+  flex-direction: column;
+}
+
+.claims-card--right {
+  display: flex;
+  flex-direction: column;
+}
+
+.claims-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  line-height: 1.2;
+  color: #bcc3dc;
+}
+
+.claims-icon {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.claims-icon--section {
+  width: 26px;
+  height: 26px;
+}
+
+.claims-icon--inline {
+  width: 20px;
+  height: 20px;
+}
+
+.claims-amount {
+  margin-top: 26px;
+  font-size: 64px;
+  line-height: 1;
+  font-weight: 800;
+  color: #c6a6ff;
+}
+
+.claims-period {
+  margin-top: 4px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  line-height: 1.2;
+  color: #afb3cc;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.claims-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 12px 0;
+}
+
+.claims-row--spaced {
+  margin: 12px 0 10px;
+}
+
+.claims-divider {
+  border-bottom: 1px solid #3c3f4e;
+}
+
+.claims-positive {
+  color: #5fdf9f;
+}
+
+.claims-neutral {
+  color: #7aecaf;
+}
+
+.claims-balance-card {
+  margin-top: 20px;
+  background: #282e3a;
+  border: 1px solid #9479fe;
+  border-radius: 28px;
+  padding: 20px 24px;
+}
+
+.claims-balance-label {
+  font-size: 16px;
+  line-height: 1.2;
+  color: #c5caf9;
+}
+
+.claims-balance-value-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.claims-balance-value {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.claims-balance-status {
+  font-size: 14px;
+  color: #abadc5;
+  transform: translateY(-5px);
+}
+
+.claims-cta-btn {
+  margin-top: 16px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  outline: 0;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #ffffff;
+  cursor: pointer;
+  background: #7b4ae2;
+  box-shadow: 0 4px 10px 7px rgba(126, 77, 227, 0.15);
+}
+
+.claims-cta-btn:hover {
+  border: 0;
+}
+
+.claims-cta-btn:focus,
+.claims-cta-btn:focus-visible {
+  outline: 0;
+}
+
+.claims-cta-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.claims-breakdown-list {
+  margin-top: 16px;
+}
+
+.claims-progress-track {
+  margin-bottom: 8px;
+  height: 12px;
+  border-radius: 999px;
+  background: #3a3c4a;
+  overflow: hidden;
+}
+
+.claims-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #9e77ed;
+  box-shadow: inset 45px 4px 4px 5px rgba(126, 77, 227, 0.25);
+}
+
+.claims-guarantee {
+  margin: 14px 0 0;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.claims-guarantee-icon {
+  margin-right: 6px;
+  transform: translateY(3px);
+}
+
+.claims-muted-strong {
+  color: #bfc5e0;
+  font-weight: 400;
+}
+
+.claims-last-paid-card {
+  margin-top: 20px;
+  border-radius: 999px;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #2a233b;
+}
+
+.claims-icon--file {
+  width: 44px;
+  height: 44px;
+}
+
+.claims-last-paid-label {
+  font-size: 16px;
+  color: #b2b9d5;
+}
+
+.claims-last-paid-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.claims-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.claims-footer-note {
+  font-size: 16px;
+  color: #7a7e97;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.claims-icon--footer {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+}
+
+@media (max-width: 1200px) {
+  .claims-page {
+    padding: 24px 20px 18px;
+  }
+
+  .claims-title {
+    font-size: 30px;
+  }
+
+  .claims-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .claims-card {
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .claims-section-label {
+    font-size: 20px;
+  }
+
+  .claims-amount {
+    font-size: 52px;
+  }
+
+  .claims-period {
+    font-size: 16px;
+  }
+
+  .claims-row {
+    font-size: 20px;
+  }
+
+  .claims-balance-label {
+    font-size: 18px;
+  }
+
+  .claims-balance-value {
+    font-size: 42px;
+  }
+
+  .claims-balance-status {
+    font-size: 18px;
+  }
+
+  .claims-cta-btn {
+    font-size: 24px;
+  }
+
+  .claims-guarantee {
+    font-size: 20px;
+  }
+
+  .claims-last-paid-label {
+    font-size: 18px;
+  }
+
+  .claims-last-paid-value {
+    font-size: 24px;
+  }
+
+  .claims-footer-note {
+    font-size: 16px;
+  }
+}
