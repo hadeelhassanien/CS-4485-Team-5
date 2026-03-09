@@ -25,4 +25,5 @@ public class VideoDTO {
     long likeCount;
     long commentCount;
     String videoUrl;
+    String topicCategories;
 }
