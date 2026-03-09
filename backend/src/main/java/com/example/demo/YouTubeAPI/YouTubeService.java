@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,16 +72,28 @@ public class YouTubeService {
                 Map<String, Object> snippet = (Map<String, Object>) item.get("snippet");
                 Map<String, Object> statistics = (Map<String, Object>) item.get("statistics");
 
+                Map<String, Object> topicDetails = (Map<String, Object>) item.getOrDefault("topicDetails", new HashMap<>());
+                List<String> topicCategories = (List<String>) topicDetails.getOrDefault("topicCategories", List.of());
+                String topicsStr = String.join(", ", topicCategories);
+
+                // Extract English localization, fall back to snippet
+                Map<String, Object> localizations = (Map<String, Object>) item.getOrDefault("localizations", new HashMap<>());
+                Map<String, Object> englishLocalization = (Map<String, Object>) localizations.getOrDefault("en", new HashMap<>());
+                String title = (String) englishLocalization.getOrDefault("title", snippet.get("title"));
+                String description = (String) englishLocalization.getOrDefault("description", snippet.get("description"));
+
                 return new VideoDTO(
                     videoId,
                     (String) snippet.get("title"),
                     (String) snippet.get("channelTitle"),
                     (String) snippet.get("publishedAt"),
-                    (String) snippet.get("description"),
+                    //(String) snippet.get("description"),
+                    description,
                     statistics.get("viewCount") != null ? Long.parseLong((String) statistics.get("viewCount")) : 0L,
                     statistics.get("likeCount") != null ? Long.parseLong((String) statistics.get("likeCount")) : 0L,
                     statistics.get("commentCount") != null ? Long.parseLong((String) statistics.get("commentCount")) : 0L,
-                    "https://www.youtube.com/watch?v=" + videoId
+                    "https://www.youtube.com/watch?v=" + videoId,
+                    topicsStr
                 );
             }).toList();
     }
