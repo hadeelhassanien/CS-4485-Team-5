@@ -77,9 +77,10 @@ public class YouTubeService {
                     (String) snippet.get("channelTitle"),
                     (String) snippet.get("publishedAt"),
                     (String) snippet.get("description"),
+                    statistics.get("commentCount") != null ? Long.parseLong((String) statistics.get("commentCount")) : 0L,
                     statistics.get("viewCount") != null ? Long.parseLong((String) statistics.get("viewCount")) : 0L,
                     statistics.get("likeCount") != null ? Long.parseLong((String) statistics.get("likeCount")) : 0L,
-                    statistics.get("commentCount") != null ? Long.parseLong((String) statistics.get("commentCount")) : 0L,
+                    (String) snippet.get("topicCategories"),
                     "https://www.youtube.com/watch?v=" + videoId
                 );
             }).toList();
