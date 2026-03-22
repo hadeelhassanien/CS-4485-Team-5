@@ -25,64 +25,73 @@ public class GamingGenreService {
         this.youTubeService = youTubeService;
     }
 
-    private static final Map<String, String> TOPIC_TO_GENRE = new LinkedHashMap<>(Map.of(
-        "Battle_royal_game",   "Battle Royale",
-        "Survival_game",       "Survival Craft",
-        "Sports_video_game",   "Sports Sim",
-        "Horror_video_game",   "Horror",
-        "shooter_game",        "Shooter",
-        "Action_game",         "Action",
-        "Racing_video_game",   "Racing",
-        "Casual_game",         "Party / Casual",
-        "Simulation_video_game", "Simulation",
-        "Puzzle_video_game",   "Puzzle"
-    ));
+    private static final Map<String, List<String>> GENRE_KEYWORDS = new LinkedHashMap<>();
+
+    static {
+        GENRE_KEYWORDS.put("Battle Royale",   List.of("fortnite", "warzone", "pubg", "apex", "battle royale", "free fire", "squad", "br"));
+        GENRE_KEYWORDS.put("Survival Craft",  List.of("minecraft", "survival", "rust", "valheim", "terraria", "craft"));
+        GENRE_KEYWORDS.put("Sports Sim",      List.of("fifa", "nba 2k", "madden", "mlb", "nhl", "fc 25", "sports"));
+        GENRE_KEYWORDS.put("Horror",          List.of("horror", "scary", "five nights", "fnaf", "resident evil", "outlast", "fear"));
+        GENRE_KEYWORDS.put("Shooter",         List.of("valorant", "cod", "call of duty", "overwatch", "counter strike", "cs2", "fps", "shooter"));
+        GENRE_KEYWORDS.put("Action",          List.of("gta", "action", "elden ring", "dark souls", "hack", "slash", "brawl"));
+        GENRE_KEYWORDS.put("Racing",          List.of("racing", "mario kart", "need for speed", "forza", "f1", "drift", "nascar", "trackmania", "gran turismo"));
+        GENRE_KEYWORDS.put("Party / Casual",  List.of("among us", "fall guys", "party", "casual", "roblox", "gang beasts"));
+        GENRE_KEYWORDS.put("Simulation",      List.of("simulation", "sims", "stardew", "farming", "city", "tycoon", "simulator", "building", "zoo", "planet"));
+        GENRE_KEYWORDS.put("Puzzle",          List.of("puzzle", "tetris", "portal", "escape", "brain", "wordle", "among us"));
+    }
+
+    private String detectGenre(String title, String description) {
+    String text = (title + " " + description).toLowerCase();
+    for (Map.Entry<String, List<String>> entry : GENRE_KEYWORDS.entrySet()) {
+        for (String keyword : entry.getValue()) {
+            if (text.contains(keyword)) {
+                return entry.getKey();
+            }
+        }
+    }
+    return null; // no genre matched
+}
+
 
     public void updateGenreStats() {
         List<VideoDTO> videos = youTubeService.getPopularGamingVideoDetails(50, "US");
         LocalDate today = LocalDate.now();
         LocalDate previousDate = genreRepository.findPreviousSnapshotDate(today);
 
-        // Aggregate views, likes, comments per genre
         Map<String, Long> genreViews    = new HashMap<>();
         Map<String, Long> genreLikes    = new HashMap<>();
         Map<String, Long> genreComments = new HashMap<>();
 
-        for (String genre : TOPIC_TO_GENRE.values()) {
+        // Initialize all genres to 0
+        for (String genre : GENRE_KEYWORDS.keySet()) {
             genreViews.put(genre, 0L);
             genreLikes.put(genre, 0L);
             genreComments.put(genre, 0L);
         }
 
+        // Map each video to a genre using title/description keywords
         for (VideoDTO video : videos) {
-            String topics = video.getTopicCategories();
-            if (topics == null || topics.isEmpty()) continue;
+            String genre = detectGenre(video.getTitle(), video.getDescription());
+            if (genre == null) continue;
 
-            for (Map.Entry<String, String> entry : TOPIC_TO_GENRE.entrySet()) {
-                if (topics.contains(entry.getKey())) {
-                    String genre = entry.getValue();
-                    genreViews.merge(genre, video.getViewCount(), Long::sum);
-                    genreLikes.merge(genre, video.getLikeCount(), Long::sum);
-                    genreComments.merge(genre, video.getCommentCount(), Long::sum);
-                }
-            }
+            genreViews.merge(genre, video.getViewCount(), Long::sum);
+            genreLikes.merge(genre, video.getLikeCount(), Long::sum);
+            genreComments.merge(genre, video.getCommentCount(), Long::sum);
         }
 
-        for (String genre : TOPIC_TO_GENRE.values()) {
+        // Save or update each genre in DB
+        for (String genre : GENRE_KEYWORDS.keySet()) {
             long todayViews = genreViews.getOrDefault(genre, 0L);
 
-            // Calculate real changePercent vs previous snapshot
             double changePercent = 0.0;
             if (previousDate != null) {
                 GamingGenre previous = genreRepository.findByNameAndSnapshotDate(genre, previousDate);
                 if (previous != null && previous.getViews() > 0) {
                     changePercent = (double)(todayViews - previous.getViews()) / previous.getViews();
-                    // Round to 2 decimal places e.g. 0.48
                     changePercent = Math.round(changePercent * 100.0) / 100.0;
                 }
             }
 
-            // Save or update today's snapshot
             GamingGenre existing = genreRepository.findByNameAndSnapshotDate(genre, today);
             if (existing != null) {
                 existing.setViews(todayViews);

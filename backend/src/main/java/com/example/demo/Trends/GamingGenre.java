@@ -15,7 +15,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "gaming_genres")
+@Table(name = "gaming_genre")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
