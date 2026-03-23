@@ -7,9 +7,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/genres")
+
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
+
 public class GamingGenreController {
     
     private final GamingGenreService genreService;
@@ -29,5 +34,12 @@ public class GamingGenreController {
     public ResponseEntity<String> refreshGenres() {
         genreService.updateGenreStats();
         return ResponseEntity.ok("Genre stats updated successfully");
+    }
+
+    @GetMapping("/comparison")
+    public ResponseEntity<ComparePerformanceDTO> getComparison(
+            @RequestParam String fromGenre,
+            @RequestParam String toGenre) {
+        return ResponseEntity.ok(genreService.compare(fromGenre, toGenre));
     }
 }
