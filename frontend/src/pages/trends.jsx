@@ -35,16 +35,16 @@ const tags = [
 ];
 
 const PLACEHOLDER_GENRES = [
-  { Name: "Battle Royale",  views: 4800000, likes: 320000, comments: 41200, changePercent: 0.48 },
-  { Name: "Survival Craft", views: 3900000, likes: 260000, comments: 33800, changePercent: 0.92 },
-  { Name: "Sports Sim",     views: 2700000, likes: 154000, comments: 19400, changePercent: 0.57 },
-  { Name: "Horror",         views: 2100000, likes: 118000, comments: 15600, changePercent: 0.43 },
-  { Name: "Shooter",        views: 1850000, likes: 102000, comments: 13200, changePercent: 0.38 },
-  { Name: "Action",         views: 1600000, likes:  88000, comments: 11400, changePercent: 0.31 },
-  { Name: "Racing",         views: 9300000, likes:  71000, comments:  9200, changePercent: 0.24 },
-  { Name: "Party / Casual", views: 1100000, likes:  59000, comments:  7800, changePercent: 0.22 },
-  { Name: "Simulation",     views:  820000, likes:  43000, comments:  5600, changePercent: 0.15 },
-  { Name: "Puzzle",         views:  540000, likes:  27000, comments:  3400, changePercent: 0.09 },
+  { name: "Battle Royale",  views: 4800000, likes: 320000, comments: 41200, changePercent: 0.48 },
+  { name: "Survival Craft", views: 3900000, likes: 260000, comments: 33800, changePercent: 0.92 },
+  { name: "Sports Sim",     views: 2700000, likes: 154000, comments: 19400, changePercent: 0.57 },
+  { name: "Horror",         views: 2100000, likes: 118000, comments: 15600, changePercent: 0.43 },
+  { name: "Shooter",        views: 1850000, likes: 102000, comments: 13200, changePercent: 0.38 },
+  { name: "Action",         views: 1600000, likes:  88000, comments: 11400, changePercent: 0.31 },
+  { name: "Racing",         views: 9300000, likes:  71000, comments:  9200, changePercent: 0.24 },
+  { name: "Party / Casual", views: 1100000, likes:  59000, comments:  7800, changePercent: 0.22 },
+  { name: "Simulation",     views:  820000, likes:  43000, comments:  5600, changePercent: 0.15 },
+  { name: "Puzzle",         views:  540000, likes:  27000, comments:  3400, changePercent: 0.09 },
 ];
 
 export default function Trends() {
@@ -85,9 +85,15 @@ export default function Trends() {
       });
   }, []);
 
+  // Normalize name casing (`name` vs `Name`) so placeholder/API payloads both work.
+  const normalizedGenres = genres.map((g) => ({
+    ...g,
+    name: g.name ?? g.Name ?? "",
+  }));
+
   // Derive percentages relative to the genre with the most views
-  const maxViews = genres.length ? Math.max(...genres.map((g) => g.views)) : 1;
-  const genreData = genres
+  const maxViews = normalizedGenres.length ? Math.max(...normalizedGenres.map((g) => g.views)) : 1;
+  const genreData = normalizedGenres
     .map((g) => {
       const change = Number(g.changePercent) || 0;
       return {
@@ -101,7 +107,7 @@ export default function Trends() {
     .sort((a, b) => b.views - a.views)
     .slice(0, 5);
 
-  const beforeGenreData = genres.find((g) => g.name === beforeGenre) ?? null;
+  const beforeGenreData = genreData.find((g) => g.name === beforeGenre) ?? null;
   const afterGenreData  = genreData[0] ?? null; // top trending genre
 
   // Top 2 genres by changePercent for the "next month peak" prediction
@@ -234,7 +240,7 @@ export default function Trends() {
               </div>
               {beforeDropdownOpen && (
                 <ul className="trends-genre-dropdown">
-                  {genres.map((g) => (
+                  {normalizedGenres.map((g) => (
                     <li
                       key={g.name}
                       className={`trends-genre-dropdown-item${g.name === beforeGenre ? " trends-genre-dropdown-item--active" : ""}`}
