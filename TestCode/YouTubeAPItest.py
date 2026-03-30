@@ -6,6 +6,7 @@ from googleapiclient.discovery import build
 import json
 import requests
 import pandas as pd
+import re
 
 load_dotenv()
 
@@ -20,11 +21,21 @@ def get_transcript(video_id):
         return transcript_text
     except Exception:
         return None
+    
+def duration_to_seconds(duration):
+    pattern = r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
+    match = re.match(pattern, duration)
+
+    h = int(match.group(1)) if match.group(1) else 0
+    m = int(match.group(2)) if match.group(2) else 0
+    s = int(match.group(3)) if match.group(3) else 0
+
+    return h*3600 + m*60 + s
 
 youtube = build('youtube', 'v3', developerKey=api_key)
 
 request = youtube.videos().list(
-    part='localizations,statistics,topicDetails',
+    part='localizations,statistics,topicDetails,contentDetails',
     chart='mostPopular',
     regionCode='us',
     videoCategoryId='20',
@@ -51,6 +62,8 @@ for item in response["items"]:
     title = localization.get("title")
     description = localization.get("description")
 
+    video_duration = item.get("contentDetails",{}).get("duration")
+
     videos_data.append({
         "Video ID": video_id,
         "Video Title": title,
@@ -58,7 +71,8 @@ for item in response["items"]:
         "Views": view_count,
         "Likes": like_count,
         "Number of Comments": comment_count,
-        "Topic Categories": topics_str
+        "Topic Categories": topics_str,
+        "Duration": duration_to_seconds(video_duration)
     
     })
 
@@ -68,31 +82,3 @@ df["Transcript"] = df["Video ID"].apply(get_transcript)
 df.to_excel("initial_analysis.xlsx", index=False)
 
 print("saved")
-
-
-pipe = pipeline(
-    "text-generation",
-    model="Qwen/Qwen2.5-1.5B-Instruct",
-    torch_dtype="auto",
-    device_map="auto",
-    max_new_tokens=100
-)
-
-sample_data = df['Video Title'].str.cat()
-
-
-# Function to extract claims
-def claim_extraction(text):
-    # Create message
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant that extracts factual claims from text."},
-        {"role": "user", "content": f"Extract all factual claims as bullet points.\n\nText: {text}"}
-    ]
-    # Send message to Qwen model
-    output = pipe(messages, max_length=None)
-    # Get claim from Qwen response
-    result = output[0]["generated_text"][-1]["content"]
-    return result
-
-# Test extract claims for sample data
-print(f"Claims Extracted:\n{claim_extraction(sample_data)}\n")

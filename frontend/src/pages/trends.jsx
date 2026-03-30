@@ -240,7 +240,7 @@ export default function Trends() {
               </div>
               {beforeDropdownOpen && (
                 <ul className="trends-genre-dropdown">
-                  {genres.map((g) => (
+                  {normalizedGenres.map((g) => (
                     <li
                       key={g.name}
                       className={`trends-genre-dropdown-item${g.name === beforeGenre ? " trends-genre-dropdown-item--active" : ""}`}
