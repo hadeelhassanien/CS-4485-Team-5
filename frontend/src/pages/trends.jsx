@@ -17,14 +17,14 @@ const GENRE_ICONS = {
   "Action":      null,
 };
 
-// Formats a raw number into a short human-readable string (e.g. 1240000 → "1.24M")
+// Formats a raw number into a string with M or K as million or thousand  
 function formatNumber(n) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(2).replace(/\.?0+$/, "") + "M";
   if (n >= 1_000)     return (n / 1_000).toFixed(1).replace(/\.?0+$/, "") + "k";
   return String(n);
 }
 
-const MAX_BAR_HEIGHT = 110; // px — tallest bar in the chart
+const MAX_BAR_HEIGHT = 110; //tallest bar height 
 
 const tags = [
   { label: "Valorant"       },
@@ -34,18 +34,18 @@ const tags = [
   { label: "Lethal Company" },
 ];
 
-const PLACEHOLDER_GENRES = [
-  { name: "Battle Royale",  views: 4800000, likes: 320000, comments: 41200, changePercent: 0.48 },
-  { name: "Survival Craft", views: 3900000, likes: 260000, comments: 33800, changePercent: 0.92 },
-  { name: "Sports Sim",     views: 2700000, likes: 154000, comments: 19400, changePercent: 0.57 },
-  { name: "Horror",         views: 2100000, likes: 118000, comments: 15600, changePercent: 0.43 },
-  { name: "Shooter",        views: 1850000, likes: 102000, comments: 13200, changePercent: 0.38 },
-  { name: "Action",         views: 1600000, likes:  88000, comments: 11400, changePercent: 0.31 },
-  { name: "Racing",         views: 9300000, likes:  71000, comments:  9200, changePercent: 0.24 },
-  { name: "Party / Casual", views: 1100000, likes:  59000, comments:  7800, changePercent: 0.22 },
-  { name: "Simulation",     views:  820000, likes:  43000, comments:  5600, changePercent: 0.15 },
-  { name: "Puzzle",         views:  540000, likes:  27000, comments:  3400, changePercent: 0.09 },
-];
+// const PLACEHOLDER_GENRES = [
+//   { name: "Battle Royale",  views: 4800000, likes: 320000, comments: 41200, changePercent: 0.48 },
+//   { name: "Survival Craft", views: 3900000, likes: 260000, comments: 33800, changePercent: 0.92 },
+//   { name: "Sports Sim",     views: 2700000, likes: 154000, comments: 19400, changePercent: 0.57 },
+//   { name: "Horror",         views: 2100000, likes: 118000, comments: 15600, changePercent: 0.43 },
+//   { name: "Shooter",        views: 1850000, likes: 102000, comments: 13200, changePercent: 0.38 },
+//   { name: "Action",         views: 1600000, likes:  88000, comments: 11400, changePercent: 0.31 },
+//   { name: "Racing",         views: 9300000, likes:  71000, comments:  9200, changePercent: 0.24 },
+//   { name: "Party / Casual", views: 1100000, likes:  59000, comments:  7800, changePercent: 0.22 },
+//   { name: "Simulation",     views:  820000, likes:  43000, comments:  5600, changePercent: 0.15 },
+//   { name: "Puzzle",         views:  540000, likes:  27000, comments:  3400, changePercent: 0.09 },
+// ];
 
 export default function Trends() {
   const navigate = useNavigate();
@@ -67,33 +67,62 @@ export default function Trends() {
 
   // Raw genre data from the API
   // Expected shape per item: { name, views, likes, comments, changePercent }
-  const [genres, setGenres]   = useState(PLACEHOLDER_GENRES);
-  const [loading] = useState(false);
-  const [error]   = useState(null);
+  const [genres, setGenres]       = useState([]);
+  const [predicted, setPredicted] = useState([]); // GET /api/genres/predicted
+  const [reco, setReco]           = useState(null); // GET /api/genres/recommendation
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
+
 
   useEffect(() => {
-    fetch("/api/trends/genres")
-      .then((res) => {
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        setGenres(data);
-      })
-      .catch(() => {
-        // Backend not yet available — placeholder data stays visible
-      });
-  }, []);
+  const BASE = "http://localhost:8080";
 
-  // Normalize name casing (`name` vs `Name`) so placeholder/API payloads both work.
-  const normalizedGenres = genres.map((g) => ({
-    ...g,
-    name: g.name ?? g.Name ?? "",
-  }));
+  // Genres is required
+  fetch(`${BASE}/api/genres`)
+    .then((res) => {
+      if (!res.ok) throw new Error(`Genres error: ${res.status}`);
+      return res.json();
+    })
+    .then((genresData) => {
+      setGenres(genresData);
+    })
+    .catch((err) => {
+      setError(err.message);
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+
+  // Optional: don't crash if endpoint doesn't exist yet
+  fetch(`${BASE}/api/genres/predicted`)
+    .then((res) => {
+      if (!res.ok) return null;
+      return res.json();
+    })
+    .then((data) => {
+      if (data) setPredicted(data);
+    })
+    .catch(() => {
+      console.warn("Predicted endpoint not available yet");
+    });
+
+  // Optional: don't crash if endpoint doesn't exist yet
+  fetch(`${BASE}/api/genres/recommendation`)
+    .then((res) => {
+      if (!res.ok) return null;
+      return res.json();
+    })
+    .then((data) => {
+      if (data) setReco(data);
+    })
+    .catch(() => {
+      console.warn("Recommendation endpoint not available yet");
+    });
+}, []);
 
   // Derive percentages relative to the genre with the most views
-  const maxViews = normalizedGenres.length ? Math.max(...normalizedGenres.map((g) => g.views)) : 1;
-  const genreData = normalizedGenres
+  const maxViews = genres.length ? Math.max(...genres.map((g) => g.views)) : 1;
+  const genreData = genres
     .map((g) => {
       const change = Number(g.changePercent) || 0;
       return {
@@ -107,18 +136,26 @@ export default function Trends() {
     .sort((a, b) => b.views - a.views)
     .slice(0, 5);
 
-  const beforeGenreData = genreData.find((g) => g.name === beforeGenre) ?? null;
+  const beforeGenreData = genres.find((g) => g.name === beforeGenre) ?? null;
   const afterGenreData  = genreData[0] ?? null; // top trending genre
 
-  // Top 2 genres by changePercent for the "next month peak" prediction
-  const topByChange = [...genreData]
-    .sort((a, b) => b.changePercent - a.changePercent)
-    .slice(0, 2);
+  // Top 2 predicted genres for the "next month peak" label — from GET /api/genres/predicted
+  // Falls back to deriving from genreData while the endpoint is loading
+  const topByChange = predicted.length
+    ? [...predicted]
+        .sort((a, b) => b.predictedGrowthPercent - a.predictedGrowthPercent)
+        .slice(0, 2)
+        .map((p) => ({ ...p, name: p.name, changePercent: p.predictedGrowthPercent }))
+    : [...genreData].sort((a, b) => b.changePercent - a.changePercent).slice(0, 2);
 
-  // Personalized recommendation — difference between top genre's growth and the before genre's growth
-  const topChangeVal    = topByChange[0] ? topByChange[0].changePercent : 0;
-  const beforeChangeVal = beforeGenreData ? (Number(beforeGenreData.changePercent) || 0) : 0;
-  const growthDiff      = Math.round((topChangeVal - beforeChangeVal) * 100);
+  // Growth diff shown in the recommendation card — from GET /api/genres/recommendation
+  const growthDiff = reco
+    ? reco.predictedGrowth
+    : (() => {
+        const topChangeVal = topByChange[0] ? topByChange[0].changePercent : 0;
+        const beforeChangeVal = beforeGenreData ? Number(beforeGenreData.changePercent) || 0 : 0;
+        return Math.round((topChangeVal - beforeChangeVal) * 100);
+      })();
 
   // Viewership uplift from switching before → after genre
   const beforeViews = beforeGenreData?.views || 0;
@@ -127,13 +164,18 @@ export default function Trends() {
     ? Math.round(((afterViews - beforeViews) / beforeViews) * 100)
     : 0;
 
-  // Bar chart heights derived from top-5 changePercent values
-  const maxChange = genreData.length
-    ? Math.max(...genreData.map((g) => g.changePercent))
+  // Bar chart heights — use GET /api/genres/predicted when available
+  const barSource = predicted.length
+    ? [...predicted].sort((a, b) => b.predictedGrowthPercent - a.predictedGrowthPercent).slice(0, 5)
+    : genreData;
+
+  const maxBarVal = barSource.length
+    ? Math.max(...barSource.map((g) => (predicted.length ? g.predictedViews || 1 : g.changePercent)), 1)
     : 1;
-  const barData = genreData.map((g) => ({
+
+  const barData = barSource.map((g) => ({
     label: g.name.split(" ")[0],
-    height: Math.round((g.changePercent / maxChange) * MAX_BAR_HEIGHT),
+    height: Math.round(((predicted.length ? g.predictedViews || 0 : g.changePercent) / maxBarVal) * MAX_BAR_HEIGHT),
   }));
 
   // Stats shown at the bottom of the middle card — reflect the active block's genre
@@ -166,7 +208,7 @@ export default function Trends() {
 
       {/* Three column layout */}
       <div className="trends-grid">
-        {/* ===== LEFT CARD: Top Trending Genres ===== */}
+        {/* Top Trending Genres */}
         <div className="trends-card trends-card--left">
           <div className="trends-card-header">
             <img src="/icons/trends/topTrendingGenres.svg" alt="" className="trends-icon-sm" />
@@ -222,7 +264,7 @@ export default function Trends() {
           </div>
         </div>
 
-        {/* ===== MIDDLE CARD: Performance vs Trend Shift ===== */}
+        {/* Performance vs Trend Shift */}
         <div className="trends-card trends-card--mid">
           <div className="trends-section-label">PERFORMANCE VS TREND SHIFT</div>
 
@@ -240,7 +282,7 @@ export default function Trends() {
               </div>
               {beforeDropdownOpen && (
                 <ul className="trends-genre-dropdown">
-                  {normalizedGenres.map((g) => (
+                  {genres.map((g) => (
                     <li
                       key={g.name}
                       className={`trends-genre-dropdown-item${g.name === beforeGenre ? " trends-genre-dropdown-item--active" : ""}`}
@@ -307,7 +349,7 @@ export default function Trends() {
           </div>
         </div>
 
-        {/* ===== RIGHT CARD: Future Trends (Predicted) ===== */}
+        {/* Future Trends (Predicted) */}
         <div className="trends-card trends-card--right">
           <div className="trends-section-label">FUTURE TRENDS (PREDICTED)</div>
 
@@ -322,18 +364,28 @@ export default function Trends() {
             ))}
           </div>
 
-          {/* Next month peak */}
+          {/* from GET /api/genres/recommendation when available */}
           <div className="trends-next-peak">
             <img src="/icons/trends/nextMonthPeak.svg" alt="" className="trends-icon-md" />
             <div>
               <div className="trends-next-peak-sub">next month peak:</div>
               <div className="trends-next-peak-main">
-                {topByChange[0]?.name ?? "—"} / <span className="trends-next-peak-light">{topByChange[1]?.name?.toLowerCase() ?? "—"}</span>
+                {reco ? (
+                  <>
+                    {reco.nextMonthPeak.split(" / ")[0]} /{" "}
+                    <span className="trends-next-peak-light">{(reco.nextMonthPeak.split(" / ")[1] ?? "").toLowerCase()}</span>
+                  </>
+                ) : (
+                  <>
+                    {topByChange[0]?.name ?? "—"} /{" "}
+                    <span className="trends-next-peak-light">{topByChange[1]?.name?.toLowerCase() ?? "—"}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Personalized recommendation */}
+          {/* Personalized recommendation — from GET /api/genres/recommendation when available */}
           <div className="trends-reco-card">
             <div className="trends-reco-header">
               <img src="/icons/trends/gamePad.svg" alt="" className="trends-icon-md" />
@@ -343,9 +395,15 @@ export default function Trends() {
               </div>
             </div>
             <p className="trends-reco-body">
-              your top genre was <strong>{beforeGenre.toLowerCase()}</strong> — shift to{" "}
-              <strong>{topByChange[0]?.name?.toLowerCase() ?? "—"}</strong> now matches predicted{" "}
-              <strong>{growthDiff > 0 ? `+${growthDiff}%` : `${growthDiff}%`} growth.</strong>
+              {reco ? (
+                reco.message
+              ) : (
+                <>
+                  your top genre was <strong>{beforeGenre.toLowerCase()}</strong> — shift to{" "}
+                  <strong>{topByChange[0]?.name?.toLowerCase() ?? "—"}</strong> now matches predicted{" "}
+                  <strong>{growthDiff > 0 ? `+${growthDiff}%` : `${growthDiff}%`} growth.</strong>
+                </>
+              )}
             </p>
           </div>
         </div>
