@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./trends.css";
+import.meta.env.VITE_API_URL
 
 // Maps genre names returned by the API to their SVG icon paths.
 // Genres without an icon yet will show no icon.
@@ -75,7 +76,7 @@ export default function Trends() {
 
 
   useEffect(() => {
-  const BASE = "http://localhost:8080";
+  const BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
   // Genres is required
   fetch(`${BASE}/api/genres`)
