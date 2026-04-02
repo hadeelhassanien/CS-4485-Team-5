@@ -129,6 +129,7 @@ body {
   display: flex;
   gap: 14px;
   align-items: center;
+  cursor: pointer;
 }
 
 .main__featureIcon {
