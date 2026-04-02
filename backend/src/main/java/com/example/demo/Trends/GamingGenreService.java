@@ -127,6 +127,64 @@ public class GamingGenreService {
         return todaySnapshot;
     }
 
+    public ComparePerformanceDTO compare(String fromGenre, String toGenre) {
+        LocalDate today = LocalDate.now();
+
+        //get the latest snapshot for each genre
+        GamingGenre before = getLatestSnapshot(fromGenre, today);
+        GamingGenre after  = getLatestSnapshot(toGenre,   today);
+
+        if (before == null) throw new IllegalArgumentException("Genre not found: " + fromGenre);
+        if (after  == null) throw new IllegalArgumentException("Genre not found: " + toGenre);
+
+        //get prev snapshots for 30 day avg
+        LocalDate prevDate = genreRepository.findPreviousSnapshotDate(today);
+        GamingGenre beforePrev = prevDate != null ? genreRepository.findByNameAndSnapshotDate(fromGenre, prevDate) : null;
+        GamingGenre afterPrev  = prevDate != null ? genreRepository.findByNameAndSnapshotDate(toGenre,   prevDate) : null;
+
+        long avgViewsBefore = average(before.getViews(), beforePrev != null ? beforePrev.getViews() : before.getViews());
+        long avgViewsAfter  = average(after.getViews(),  afterPrev  != null ? afterPrev.getViews()  : after.getViews());
+
+        double likeRatioBefore = likeRatio(before.getLikes(), before.getViews());
+        double likeRatioAfter  = likeRatio(after.getLikes(),  after.getViews());
+        double revenueUplift   = pctChange(before.getViews(), after.getViews());
+
+        return new ComparePerformanceDTO(
+                fromGenre,
+                toGenre,
+                before.getViews(),
+                before.getChangePercent(),
+                after.getViews(),
+                after.getChangePercent(),
+                avgViewsBefore,
+                avgViewsAfter,
+                likeRatioBefore,
+                likeRatioAfter,
+                before.getComments(),
+                after.getComments(),
+                revenueUplift
+        );
+    }
+
+    private GamingGenre getLatestSnapshot(String name, LocalDate today) {
+        GamingGenre g = genreRepository.findByNameAndSnapshotDate(name, today);
+        if (g != null) return g;
+        LocalDate prevDate = genreRepository.findPreviousSnapshotDate(today.plusDays(1));
+        return prevDate != null ? genreRepository.findByNameAndSnapshotDate(name, prevDate) : null;
+    }
+
+    private long average(long a, long b) { return (a + b) / 2; }
+
+    private double likeRatio(long likes, long views) {
+        if (views == 0) return 0.0;
+        return Math.round((likes * 100.0 / views) * 10.0) / 10.0;
+    }
+
+    private double pctChange(long from, long to) {
+        if (from == 0) return 0.0;
+        return Math.round(((to - from) * 100.0 / from) * 10.0) / 10.0;
+    }
+
     @Scheduled(fixedRate = 86400000) // 24 hours in milliseconds
     public void scheduledUpdate() {
         updateGenreStats();
