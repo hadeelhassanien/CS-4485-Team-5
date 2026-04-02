@@ -1,6 +1,7 @@
 package com.example.demo.Trends;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,6 +37,16 @@ public class GamingGenreController {
         return ResponseEntity.ok("Genre stats updated successfully");
     }
 
+    @GetMapping("/predicted")
+    public ResponseEntity<List<Map<String, Object>>> getPredictedTrends() {
+        return ResponseEntity.ok(genreService.getPredictedTrends());
+    }
+
+    @GetMapping("/recommendation")
+    public ResponseEntity<Map<String, Object>> getRecommendation() {
+        return ResponseEntity.ok(genreService.getGeneralRecommendation());
+    }
+}
     @GetMapping("/comparison")
     public ResponseEntity<ComparePerformanceDTO> getComparison(
             @RequestParam String fromGenre,

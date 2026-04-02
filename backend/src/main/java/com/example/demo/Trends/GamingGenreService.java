@@ -41,17 +41,16 @@ public class GamingGenreService {
     }
 
     private String detectGenre(String title, String description) {
-    String text = (title + " " + description).toLowerCase();
-    for (Map.Entry<String, List<String>> entry : GENRE_KEYWORDS.entrySet()) {
-        for (String keyword : entry.getValue()) {
-            if (text.contains(keyword)) {
-                return entry.getKey();
+        String text = (title + " " + description).toLowerCase();
+        for (Map.Entry<String, List<String>> entry : GENRE_KEYWORDS.entrySet()) {
+            for (String keyword : entry.getValue()) {
+                if (text.contains(keyword)) {
+                    return entry.getKey();
+                }
             }
         }
+        return null; // no genre matched
     }
-    return null; // no genre matched
-}
-
 
     public void updateGenreStats() {
         List<VideoDTO> videos = youTubeService.getPopularGamingVideoDetails(50, "US");
@@ -189,5 +188,65 @@ public class GamingGenreService {
     @Scheduled(fixedRate = 86400000) // 24 hours in milliseconds
     public void scheduledUpdate() {
         updateGenreStats();
+    }
+
+    // Get top 5 predicted trends based on today's views and % change
+    public List<Map<String, Object>> getPredictedTrends() {
+        List<GamingGenre> latestGenres = getAllGenres();
+
+        return latestGenres.stream()
+                .map(genre -> {
+                    // predictedViews = todayViews * (1 + changePercent)
+                    long predictedViews = (long) (genre.getViews() * (1 + genre.getChangePercent()));
+
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("name", genre.getName());
+                    result.put("currentViews", genre.getViews());
+                    result.put("predictedViews", predictedViews);
+                    result.put("predictedGrowthPercent", genre.getChangePercent() * 100);
+                    return result;
+                })
+                // Sort by predicted growth % descending
+                .sorted((a, b) -> Double.compare(
+                    (double) b.get("predictedGrowthPercent"),
+                    (double) a.get("predictedGrowthPercent")
+                ))
+                .limit(5)
+                .toList();
+    }
+
+    // Provide a general recommendation based on the top predicted trend
+    public Map<String, Object> getGeneralRecommendation() {
+        List<Map<String, Object>> predicted = getPredictedTrends();
+
+        if (predicted.isEmpty()) {
+            return Map.of(
+                "nextMonthPeak", "No data available",
+                "recommendedGenre", "No data available",
+                "predictedGrowth", 0,
+                "message", "Not enough data to make a recommendation yet."
+            );
+        }
+
+        // Top genre by predicted growth
+        Map<String, Object> topGenre = predicted.get(0);
+        String recommendedGenre = (String) topGenre.get("name");
+        double predictedGrowth = (double) topGenre.get("predictedGrowthPercent");
+
+        // Next month peak — top 2 genres
+        String secondGenre = predicted.size() > 1 ? (String) predicted.get(1).get("name") : "";
+        String nextMonthPeak = recommendedGenre + (secondGenre.isEmpty() ? "" : " / " + secondGenre);
+
+        String message = String.format(
+            "%s is predicted to peak next month with %.0f%% growth — now is a good time to create content in this genre.",
+            recommendedGenre, predictedGrowth
+        );
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("nextMonthPeak", nextMonthPeak);
+        result.put("recommendedGenre", recommendedGenre);
+        result.put("predictedGrowth", Math.round(predictedGrowth));
+        result.put("message", message);
+        return result;
     }
 }
