@@ -46,7 +46,7 @@ public class GamingGenreController {
     public ResponseEntity<Map<String, Object>> getRecommendation() {
         return ResponseEntity.ok(genreService.getGeneralRecommendation());
     }
-}
+
     @GetMapping("/comparison")
     public ResponseEntity<ComparePerformanceDTO> getComparison(
             @RequestParam String fromGenre,
