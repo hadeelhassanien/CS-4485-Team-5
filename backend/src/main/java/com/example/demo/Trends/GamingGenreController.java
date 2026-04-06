@@ -53,4 +53,11 @@ public class GamingGenreController {
             @RequestParam String toGenre) {
         return ResponseEntity.ok(genreService.compare(fromGenre, toGenre));
     }
+
+    @GetMapping("/breakdown")
+    public ResponseEntity<BreakdownDTO> getBreakdown(
+            @RequestParam String fromGenre,
+            @RequestParam String toGenre) {
+        return ResponseEntity.ok(genreService.getBreakdown(fromGenre, toGenre));
+    }
 }
