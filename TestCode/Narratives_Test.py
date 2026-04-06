@@ -24,13 +24,15 @@ def chunk_text(text, chunk_size=800, overlap=100):
 
 def process_claims_chunk(chunk, pipe):
     prompt = (
-        "You are helping YouTube gaming creators improve their content.\n\n"
-        "Given the factual claims below, convert them into actionable recommendations.\n"
+        "You are helping YouTube gamers improve their content.\n\n"
+        "Given the factual claims below, convert them into upcoming trends and actionable recommendations, split into two sections \n"
         "Rules:\n"
         "- Output bullet points\n"
         "- Be concise\n"
         "- Merge similar ideas\n"
-        "- Focus on advice (not raw claims)\n\n"
+        "- Focus on advice (not raw claims)\n"
+        "- Show creators what kind of trends has been seen in gaming videos coming up\n"
+        "- Give creators advice on what type of games they should play (not suggestions to improve games)\n\n"
         f"Claims:\n{chunk}"
     )
 
@@ -39,7 +41,7 @@ def process_claims_chunk(chunk, pipe):
 
 def deduplicate_recommendations(text, pipe):
     prompt = (
-        "Clean and deduplicate these recommendations.\n"
+        "Clean and deduplicate these recommendations and trends.\n"
         "Merge similar points and keep the clearest version.\n"
         "Return only bullet points.\n\n"
         f"{text}"
