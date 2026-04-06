@@ -13,6 +13,9 @@ export default function Landing() {
           <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>
             Trends
           </NavLink>
+          <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>
+            Narratives
+          </NavLink>
           <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>
             Home
           </NavLink>
@@ -59,7 +62,17 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="main__feature">
+            <div
+              className="main__feature"
+              onClick={() => navigate("/narratives")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  navigate("/narratives");
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <div className="main__featureIcon">
                 <img
                   className="main__svgIcon"

@@ -1,0 +1,183 @@
+.narratives-page {
+  min-height: 100vh;
+  background: #282a33;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  padding: 32px 36px 28px;
+  box-sizing: border-box;
+}
+
+.narratives-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.narratives-brand-logo {
+  height: 18px;
+  width: auto;
+}
+
+.narratives-home-btn {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+}
+
+.narratives-title {
+  margin: 14px 0 18px;
+  font-size: 36px;
+  line-height: 1.12;
+  font-weight: 700;
+  color: #f6f3ff;
+}
+
+.narratives-title-accent {
+  color: #c8bde7;
+}
+
+.narratives-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.narratives-card {
+  background: #1f2129;
+  border: 2px solid #414552;
+  border-radius: 32px;
+  box-shadow: 0 6px 10px 5px rgba(0, 0, 0, 0.25);
+  padding: 20px 22px 18px;
+  box-sizing: border-box;
+}
+
+.narratives-card--left {
+  min-height: 548px;
+}
+
+.narratives-card--right {
+  min-height: 548px;
+}
+
+.narratives-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  letter-spacing: 1.1px;
+  color: #bcc3dc;
+}
+
+.narratives-section-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.narratives-divider {
+  margin: 10px 0 12px;
+  border-bottom: 1px solid #353846;
+}
+
+.narratives-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.narratives-quote-card {
+  background: #10131b;
+  border: 2px solid #7d5cf0;
+  border-radius: 24px;
+  padding: 14px 18px 16px;
+}
+
+.narratives-quote-icon {
+  color: #a98aff;
+  font-size: 16px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.narratives-quote-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #d7dae7;
+}
+
+.narratives-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.narratives-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.narratives-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 700;
+  color: #e8e9f2;
+}
+
+.narratives-group-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.narratives-group-card {
+  background: #10131b;
+  border-radius: 24px;
+  padding: 16px 18px;
+}
+
+.narratives-group-claim {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #d7dae7;
+}
+
+.narratives-group-claim + .narratives-group-claim {
+  margin-top: 8px;
+}
+
+@media (max-width: 1100px) {
+  .narratives-page {
+    padding: 24px 22px 24px;
+  }
+
+  .narratives-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .narratives-card--left,
+  .narratives-card--right {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .narratives-title {
+    font-size: 28px;
+  }
+
+  .narratives-card {
+    padding: 18px 16px;
+    border-radius: 26px;
+  }
+
+  .narratives-quote-card,
+  .narratives-group-card {
+    border-radius: 20px;
+  }
+}

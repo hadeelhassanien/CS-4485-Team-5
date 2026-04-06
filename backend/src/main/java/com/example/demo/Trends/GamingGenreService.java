@@ -2,6 +2,7 @@ package com.example.demo.Trends;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,17 +42,16 @@ public class GamingGenreService {
     }
 
     private String detectGenre(String title, String description) {
-    String text = (title + " " + description).toLowerCase();
-    for (Map.Entry<String, List<String>> entry : GENRE_KEYWORDS.entrySet()) {
-        for (String keyword : entry.getValue()) {
-            if (text.contains(keyword)) {
-                return entry.getKey();
+        String text = (title + " " + description).toLowerCase();
+        for (Map.Entry<String, List<String>> entry : GENRE_KEYWORDS.entrySet()) {
+            for (String keyword : entry.getValue()) {
+                if (text.contains(keyword)) {
+                    return entry.getKey();
+                }
             }
         }
+        return null; // no genre matched
     }
-    return null; // no genre matched
-}
-
 
     public void updateGenreStats() {
         List<VideoDTO> videos = youTubeService.getPopularGamingVideoDetails(50, "US");
@@ -189,5 +189,166 @@ public class GamingGenreService {
     @Scheduled(fixedRate = 86400000) // 24 hours in milliseconds
     public void scheduledUpdate() {
         updateGenreStats();
+    }
+
+    // Get top 5 predicted trends based on today's views and % change
+    public List<Map<String, Object>> getPredictedTrends() {
+        List<GamingGenre> latestGenres = getAllGenres();
+
+        return latestGenres.stream()
+                .map(genre -> {
+                    // predictedViews = todayViews * (1 + changePercent)
+                    long predictedViews = (long) (genre.getViews() * (1 + genre.getChangePercent()));
+
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("name", genre.getName());
+                    result.put("currentViews", genre.getViews());
+                    result.put("predictedViews", predictedViews);
+                    result.put("predictedGrowthPercent", Math.round(genre.getChangePercent() * 10000.0) / 100.0); //round to 1 decimal
+                    //result.put("predictedGrowthPercent", genre.getChangePercent() * 100);
+                    return result;
+                })
+                // Sort by predicted growth % descending
+                .sorted((a, b) -> Double.compare(
+                    (double) b.get("predictedGrowthPercent"),
+                    (double) a.get("predictedGrowthPercent")
+                ))
+                .limit(5)
+                .toList();
+    }
+
+    // Provide a general recommendation based on the top predicted trend
+    public Map<String, Object> getGeneralRecommendation() {
+        List<Map<String, Object>> predicted = getPredictedTrends();
+
+        if (predicted.isEmpty()) {
+            return Map.of(
+                "nextMonthPeak", "No data available",
+                "recommendedGenre", "No data available",
+                "predictedGrowth", 0,
+                "message", "Not enough data to make a recommendation yet."
+            );
+        }
+
+        // Top genre by predicted growth
+        Map<String, Object> topGenre = predicted.get(0);
+        String recommendedGenre = (String) topGenre.get("name");
+        double predictedGrowth = (double) topGenre.get("predictedGrowthPercent");
+
+        // Next month peak — top 2 genres
+        String secondGenre = predicted.size() > 1 ? (String) predicted.get(1).get("name") : "";
+        String nextMonthPeak = recommendedGenre + (secondGenre.isEmpty() ? "" : " / " + secondGenre);
+
+        String message = String.format(
+            "%s is predicted to peak next month with %.0f%% growth — now is a good time to create content in this genre.",
+            recommendedGenre, predictedGrowth
+        );
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("nextMonthPeak", nextMonthPeak);
+        result.put("recommendedGenre", recommendedGenre);
+        result.put("predictedGrowth", Math.round(predictedGrowth));
+        result.put("message", message);
+        return result;
+    }
+
+    /*
+    --------------------------------------------
+    Claims page - Breakdown: Why Trend Works
+    ---------------------------------------------
+    */
+
+    // Industry average CPM per genre (USD)
+    private static final Map<String, Double> CPM_BY_GENRE = Map.of(
+        "Battle Royale",  4.26,
+        "Survival Craft", 2.80,
+        "Sports Sim",     5.50,
+        "Horror",         3.00,
+        "Shooter",        4.00,
+        "Action",         2.50,
+        "Racing",         4.50,
+        "Party / Casual", 2.00,
+        "Simulation",     3.50,
+        "Puzzle",         2.20
+    );
+
+    public BreakdownDTO getBreakdown(String fromGenre, String toGenre) {
+        List<GamingGenre> allGenres = getAllGenres();
+
+        // Find the from and to genre data from DB
+        GamingGenre fromData = allGenres.stream()
+                .filter(g -> g.getName().equalsIgnoreCase(fromGenre))
+                .findFirst().orElse(null);
+
+        GamingGenre toData = allGenres.stream()
+                .filter(g -> g.getName().equalsIgnoreCase(toGenre))
+                .findFirst().orElse(null);
+
+        if (fromData == null || toData == null) {
+            return new BreakdownDTO(fromGenre, toGenre, 0, 0, 0, 1.0, toGenre, "Genre data not found");
+        }
+
+        if (toData.getViews() == 0) {
+            return new BreakdownDTO(
+                fromGenre, toGenre,
+                0, 0, 0, 1.0,
+                fromGenre,
+                "Not enough data for " + toGenre + " — no trending videos found"
+            );
+        }
+
+        // CPM increase %
+        double fromCPM = CPM_BY_GENRE.getOrDefault(fromGenre, 3.0);
+        double toCPM   = CPM_BY_GENRE.getOrDefault(toGenre, 3.0);
+
+        if (toCPM <= fromCPM) {
+            return new BreakdownDTO(
+                fromGenre, toGenre,
+                (int) Math.round(((toCPM - fromCPM) / fromCPM) * 100),
+                0,
+                toData.getViews(),
+                (double) Math.round((toCPM / fromCPM) * 10.0) / 10.0,
+                fromGenre,  // recommendedGenre stays as fromGenre
+                "No better genre found — " + fromGenre + " already has a high CPM"
+            );
+        }
+
+        int cpmIncrease = (int) Math.round(((toCPM - fromCPM) / fromCPM) * 100);
+
+        // Engagement rate = (likes + comments) / views * 100
+        double fromEng = fromData.getViews() > 0
+                ? ((double)(fromData.getLikes() + fromData.getComments()) / fromData.getViews()) * 100
+                : 0;
+        double toEng = toData.getViews() > 0
+                ? ((double)(toData.getLikes() + toData.getComments()) / toData.getViews()) * 100
+                : 0;
+        int engagementRateDiff = (int) Math.round(fromEng > 0 ? ((toEng - fromEng) / fromEng) * 100 : 0);
+
+        // Avg monthly views of trending genre
+        long avgMonthlyViews = toData.getViews();
+
+        // Performance multiplier
+        double fromRevenue = (100000.0 / 1000) * fromCPM * 0.45;
+        double toRevenue   = (100000.0 / 1000) * toCPM   * 0.45;
+        double multiplier  = fromRevenue > 0
+                ? Math.round((toRevenue / fromRevenue) * 10.0) / 10.0
+                : 1.0;
+
+        // Recommended genre = highest predicted growth
+        String recommendedGenre = allGenres.stream()
+                .max(Comparator.comparingDouble(GamingGenre::getChangePercent))
+                .map(GamingGenre::getName)
+                .orElse(toGenre);
+
+        return new BreakdownDTO(
+            fromGenre,
+            toGenre,
+            cpmIncrease,
+            engagementRateDiff,
+            avgMonthlyViews,
+            multiplier,
+            recommendedGenre,
+            toGenre + " is a better genre for revenue growth"  // normal message
+        );
     }
 }
