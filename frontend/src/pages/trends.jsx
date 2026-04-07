@@ -76,7 +76,7 @@ export default function Trends() {
 
 
   useEffect(() => {
-  const BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+  const BASE = ""; // Vite will replace with VITE_API_URL from .env;
 
   // Genres is required
   fetch(`${BASE}/api/genres`)
