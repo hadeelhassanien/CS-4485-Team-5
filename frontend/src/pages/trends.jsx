@@ -76,7 +76,7 @@ export default function Trends() {
 
 
   useEffect(() => {
-  const BASE = ""; // Vite will replace with VITE_API_URL from .env;
+  const BASE = "https://cleistogamously-phosphaturic-marlen.ngrok-free.dev";
 
   // Genres is required
   fetch(`${BASE}/api/genres`)
