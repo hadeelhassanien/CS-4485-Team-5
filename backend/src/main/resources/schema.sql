@@ -6,6 +6,8 @@ CREATE DATABASE IF NOT EXISTS creatorxp
 
 USE creatorxp;
 
+
+-- gaming_genre
 CREATE TABLE IF NOT EXISTS gaming_genre (
     id              BIGINT       NOT NULL AUTO_INCREMENT,
     name            VARCHAR(255),
@@ -18,4 +20,17 @@ CREATE TABLE IF NOT EXISTS gaming_genre (
     PRIMARY KEY (id),
     INDEX idx_genre_name          (name),
     INDEX idx_genre_snapshot_date (snapshot_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- claim 
+CREATE TABLE IF NOT EXISTS claim (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    genre           VARCHAR(255),
+    trend_boost     DOUBLE       DEFAULT 0.0,
+    amount_claimed  DOUBLE       DEFAULT 0.0,
+    claim_date      DATE,
+    created_at      DATETIME,
+    PRIMARY KEY (id),
+    INDEX idx_claim_date  (claim_date),
+    INDEX idx_claim_genre (genre)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
