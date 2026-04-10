@@ -76,10 +76,12 @@ export default function Trends() {
 
 
   useEffect(() => {
-  const BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+  const BASE = "https://cleistogamously-phosphaturic-marlen.ngrok-free.dev";
 
   // Genres is required
-  fetch(`${BASE}/api/genres`)
+  fetch(`${BASE}/api/genres`, { 
+    headers: { "ngrok-skip-browser-warning": "true" } // to suppress ngrok's browser warning page
+  })
     .then((res) => {
       if (!res.ok) throw new Error(`Genres error: ${res.status}`);
       return res.json();
@@ -95,7 +97,9 @@ export default function Trends() {
     });
 
   // Optional: don't crash if endpoint doesn't exist yet
-  fetch(`${BASE}/api/genres/predicted`)
+  fetch(`${BASE}/api/genres/predicted`, { 
+    headers: { "ngrok-skip-browser-warning": "true" } // to suppress ngrok's browser warning page
+  })
     .then((res) => {
       if (!res.ok) return null;
       return res.json();
@@ -108,7 +112,9 @@ export default function Trends() {
     });
 
   // Optional: don't crash if endpoint doesn't exist yet
-  fetch(`${BASE}/api/genres/recommendation`)
+  fetch(`${BASE}/api/genres/recommendation`, { 
+    headers: { "ngrok-skip-browser-warning": "true" } // to suppress ngrok's browser warning page
+  })
     .then((res) => {
       if (!res.ok) return null;
       return res.json();
