@@ -1,14 +1,108 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./claims.css";
 
-const breakdownRows = [
-  { label: "higher CPM on battle royale", value: "+42%", percent: 83, icon: "↗️", type: "positive" },
-  { label: "engagement rate", value: "+27%", percent: 70, icon: "📈", type: "positive" },
-  { label: "new subscribers from trend", value: "1,230", percent: 0, icon: "👥", type: "neutral" },
-];
+const BASE = "https://cleistogamously-phosphaturic-marlen.ngrok-free.dev";
+const FROM_GENRE = "Horror";
+const TO_GENRE = "Battle Royale";
+const FALLBACK_BREAKDOWN = {
+  fromGenre: FROM_GENRE,
+  toGenre: TO_GENRE,
+  cpmIncrease: 42,
+  engagementRateDiff: 27,
+  avgMonthlyViews: 1230,
+  performanceMultiplier: 2.3,
+  recommendedGenre: TO_GENRE,
+  message: `${TO_GENRE} is a better genre for revenue growth`,
+};
+
+function formatSignedPercent(value) {
+  if (value > 0) return `+${value}%`;
+  return `${value}%`;
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("en-US").format(value);
+}
 
 export default function Claims() {
   const navigate = useNavigate();
+  const [breakdown, setBreakdown] = useState(FALLBACK_BREAKDOWN);
+  const [loadingBreakdown, setLoadingBreakdown] = useState(true);
+  const [breakdownError, setBreakdownError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadBreakdown() {
+      try {
+        setLoadingBreakdown(true);
+        setBreakdownError(null);
+
+        const params = new URLSearchParams({
+          fromGenre: FROM_GENRE,
+          toGenre: TO_GENRE,
+        });
+
+        const response = await fetch(`${BASE}/api/genres/breakdown?${params.toString()}`, {
+          headers: { "ngrok-skip-browser-warning": "true" },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Breakdown error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (isMounted) {
+          setBreakdown(data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setBreakdownError(error.message);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingBreakdown(false);
+        }
+      }
+    }
+
+    loadBreakdown();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const cpmPercent = Math.min(Math.abs(breakdown?.cpmIncrease ?? 0), 100);
+  const engagementPercent = Math.min(Math.abs(breakdown?.engagementRateDiff ?? 0), 100);
+
+  const breakdownRows = breakdown
+    ? [
+        {
+          label: `higher CPM on ${breakdown.toGenre.toLowerCase()}`,
+          value: formatSignedPercent(breakdown.cpmIncrease),
+          percent: cpmPercent,
+          icon: "↗️",
+          type: breakdown.cpmIncrease > 0 ? "positive" : "neutral",
+        },
+        {
+          label: "engagement rate",
+          value: formatSignedPercent(breakdown.engagementRateDiff),
+          percent: engagementPercent,
+          icon: "📈",
+          type: breakdown.engagementRateDiff > 0 ? "positive" : "neutral",
+        },
+        {
+          label: `avg monthly views on ${breakdown.toGenre.toLowerCase()}`,
+          value: formatNumber(breakdown.avgMonthlyViews),
+          percent: 0,
+          icon: "👥",
+          type: "neutral",
+        },
+      ]
+    : [];
 
   return (
     <div className="claims-page">
@@ -73,31 +167,44 @@ export default function Claims() {
           </div>
 
           <div className="claims-breakdown-list">
-            {breakdownRows.map((row) => (
-              <div key={row.label}>
-                <div className="claims-row claims-row--spaced">
-                  <span>
-                    {row.icon} {row.label}
-                  </span>
-                  <span className={row.type === "positive" ? "claims-positive" : "claims-neutral"}>
-                    {row.value}
-                  </span>
-                </div>
-                {row.percent > 0 && (
-                  <div className="claims-progress-track">
-                    <div className="claims-progress-fill" style={{ width: `${row.percent}%` }} />
-                  </div>
-                )}
-                <div className="claims-divider" />
+            {loadingBreakdown && <div className="claims-row"><span>Loading breakdown…</span></div>}
+
+            {!loadingBreakdown && breakdownError && (
+              <div className="claims-row">
+                <span>Using saved breakdown values</span>
+                <span className="claims-neutral">live API unavailable</span>
               </div>
-            ))}
+            )}
+
+            {breakdownRows.map((row) => (
+                <div key={row.label}>
+                  <div className="claims-row claims-row--spaced">
+                    <span>
+                      {row.icon} {row.label}
+                    </span>
+                    <span className={row.type === "positive" ? "claims-positive" : "claims-neutral"}>
+                      {row.value}
+                    </span>
+                  </div>
+                  {row.percent > 0 && (
+                    <div className="claims-progress-track">
+                      <div className="claims-progress-fill" style={{ width: `${row.percent}%` }} />
+                    </div>
+                  )}
+                  <div className="claims-divider" />
+                </div>
+              ))}
           </div>
 
           <p className="claims-guarantee">
             <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--inline claims-guarantee-icon" />
             <strong>performance guarantee:</strong> trend adaptation yields
             <br />
-            <span className="claims-muted-strong">avg. 2.3x profit (based on your history)</span>
+            <span className="claims-muted-strong">
+              avg. {breakdown ? `${breakdown.performanceMultiplier.toFixed(1)}x` : "2.3x"} profit
+              {" "}
+              (based on your history)
+            </span>
           </p>
 
           <div className="claims-last-paid-card">
