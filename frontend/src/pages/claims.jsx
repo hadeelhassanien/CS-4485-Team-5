@@ -3,24 +3,46 @@ import { useNavigate } from "react-router-dom";
 import "./claims.css";
 
 const BASE = "https://165.232.136.214.sslip.io";
-const GENRE = "Battle Royale";
 
 export default function Claims() {
   const navigate = useNavigate();
+  const [genres, setGenres] = useState([]);
+  const [fromGenre, setFromGenre] = useState("Horror");
+  const [topGenre, setTopGenre] = useState(null); // top trending genre = toGenre
   const [breakdown, setBreakdown] = useState(null);
   const [revenue, setRevenue] = useState(null);
-  const [loadingBreakdown, setLoadingBreakdown] = useState(true);
-  const [loadingRevenue, setLoadingRevenue] = useState(true);
+  const [loadingGenres, setLoadingGenres] = useState(true);
+  const [loadingBreakdown, setLoadingBreakdown] = useState(false);
+  const [loadingRevenue, setLoadingRevenue] = useState(false);
   const [errorBreakdown, setErrorBreakdown] = useState(null);
   const [errorRevenue, setErrorRevenue] = useState(null);
   const [claiming, setClaiming] = useState(false);
 
-  const fromGenre = "Horror";
-  const toGenre = GENRE;
-
+  // Step 1: fetch all genres and derive top trending genre
   useEffect(() => {
+    fetch(`${BASE}/api/genres`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Genres error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setGenres(data);
+        // top trending = highest views (same logic as trends.jsx)
+        const top = [...data].sort((a, b) => b.views - a.views)[0];
+        setTopGenre(top?.name ?? null);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingGenres(false));
+  }, []);
+
+  // Step 2: fetch breakdown and revenue whenever fromGenre or topGenre changes
+  useEffect(() => {
+    if (!topGenre || !fromGenre) return;
+
+    setLoadingBreakdown(true);
+    setErrorBreakdown(null);
     fetch(
-      `${BASE}/api/genres/breakdown?fromGenre=${encodeURIComponent(fromGenre)}&toGenre=${encodeURIComponent(toGenre)}`
+      `${BASE}/api/genres/breakdown?fromGenre=${encodeURIComponent(fromGenre)}&toGenre=${encodeURIComponent(topGenre)}`
     )
       .then((res) => {
         if (!res.ok) throw new Error(`Breakdown error: ${res.status}`);
@@ -30,7 +52,9 @@ export default function Claims() {
       .catch((err) => setErrorBreakdown(err.message))
       .finally(() => setLoadingBreakdown(false));
 
-    fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(GENRE)}`)
+    setLoadingRevenue(true);
+    setErrorRevenue(null);
+    fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(topGenre)}`)
       .then((res) => {
         if (!res.ok) throw new Error(`Revenue error: ${res.status}`);
         return res.json();
@@ -38,11 +62,12 @@ export default function Claims() {
       .then((data) => setRevenue(data))
       .catch((err) => setErrorRevenue(err.message))
       .finally(() => setLoadingRevenue(false));
-  }, []);
+  }, [fromGenre, topGenre]);
 
   const handleClaim = () => {
+    if (!topGenre) return;
     setClaiming(true);
-    fetch(`${BASE}/api/claims/claim?genre=${encodeURIComponent(GENRE)}`, {
+    fetch(`${BASE}/api/claims/claim?genre=${encodeURIComponent(topGenre)}`, {
       method: "POST",
     })
       .then((res) => {
@@ -60,6 +85,7 @@ export default function Claims() {
   };
 
   const fmtViews = (n) => {
+    if (!n) return "—";
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
     if (n >= 1_000) return (n / 1_000).toFixed(1) + "k";
     return String(n);
@@ -72,7 +98,7 @@ export default function Claims() {
   const breakdownRows = breakdown
     ? [
         {
-          label: `higher CPM on ${breakdown.toGenre?.toLowerCase() ?? toGenre.toLowerCase()}`,
+          label: `higher CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`,
           value: `+${breakdown.cpmIncrease}%`,
           percent: Math.min(breakdown.cpmIncrease, 100),
           icon: "↗️",
@@ -80,7 +106,9 @@ export default function Claims() {
         },
         {
           label: "engagement rate",
-          value: breakdown.engagementRateDiff > 0 ? `+${breakdown.engagementRateDiff}%` : `${breakdown.engagementRateDiff}%`,
+          value: breakdown.engagementRateDiff > 0
+            ? `+${breakdown.engagementRateDiff}%`
+            : `${breakdown.engagementRateDiff}%`,
           percent: Math.min(Math.abs(breakdown.engagementRateDiff), 100),
           icon: "📈",
           type: breakdown.engagementRateDiff > 0 ? "positive" : "neutral",
@@ -112,6 +140,7 @@ export default function Claims() {
       </h1>
 
       <div className="claims-grid">
+        {/* Left card — revenue */}
         <section className="claims-card claims-card--left">
           <div className="claims-section-label">
             <img src="/icons/claims/coin.svg" alt="" className="claims-icon claims-icon--section" />
@@ -130,8 +159,18 @@ export default function Claims() {
                 <span>from {revenue.periodStart} - {revenue.periodEnd} (trend-driven videos)</span>
               </div>
 
+              {/* fromGenre dropdown */}
               <div className="claims-row">
-                <span>non-trend revenue</span>
+                <select
+                  className="claims-genre-select"
+                  value={fromGenre}
+                  onChange={(e) => setFromGenre(e.target.value)}
+                  disabled={loadingGenres}
+                >
+                  {genres.map((g) => (
+                    <option key={g.name} value={g.name}>{g.name}</option>
+                  ))}
+                </select>
                 <span>{fmt(revenue.baseRevenue)}</span>
               </div>
               <div className="claims-divider" />
@@ -158,6 +197,7 @@ export default function Claims() {
           </button>
         </section>
 
+        {/* Right card — breakdown */}
         <section className="claims-card claims-card--right">
           <div className="claims-section-label">
             <img src="/icons/claims/pie.svg" alt="" className="claims-icon claims-icon--section" />

@@ -13,6 +13,16 @@
   justify-content: space-between;
 }
 
+.claims-genre-select {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
 .claims-brand-logo {
   height: 18px;
   width: auto;
