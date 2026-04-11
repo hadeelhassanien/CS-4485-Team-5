@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/claims")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000", "https://cs-4485-team-5.pages.dev", "https://165.232.136.214.sslip.io"})
 public class ClaimsController {
 
     private final RevenueService revenueService;

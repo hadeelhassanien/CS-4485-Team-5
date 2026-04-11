@@ -3,30 +3,71 @@ import { useNavigate } from "react-router-dom";
 import "./claims.css";
 
 const BASE = "https://165.232.136.214.sslip.io";
+const GENRE = "Battle Royale";
 
 export default function Claims() {
   const navigate = useNavigate();
   const [breakdown, setBreakdown] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [revenue, setRevenue] = useState(null);
+  const [loadingBreakdown, setLoadingBreakdown] = useState(true);
+  const [loadingRevenue, setLoadingRevenue] = useState(true);
+  const [errorBreakdown, setErrorBreakdown] = useState(null);
+  const [errorRevenue, setErrorRevenue] = useState(null);
+  const [claiming, setClaiming] = useState(false);
 
-  // These could come from user state/context later — hardcoded for now
   const fromGenre = "Horror";
-  const toGenre = "Battle Royale";
+  const toGenre = GENRE;
 
   useEffect(() => {
     fetch(
-      `${BASE}/api/genres/breakdown?fromGenre=${encodeURIComponent(fromGenre)}&toGenre=${encodeURIComponent(toGenre)}`,
-      { headers: { "ngrok-skip-browser-warning": "true" } }
+      `${BASE}/api/genres/breakdown?fromGenre=${encodeURIComponent(fromGenre)}&toGenre=${encodeURIComponent(toGenre)}`
     )
       .then((res) => {
         if (!res.ok) throw new Error(`Breakdown error: ${res.status}`);
         return res.json();
       })
       .then((data) => setBreakdown(data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [fromGenre, toGenre]);
+      .catch((err) => setErrorBreakdown(err.message))
+      .finally(() => setLoadingBreakdown(false));
+
+    fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(GENRE)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Revenue error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setRevenue(data))
+      .catch((err) => setErrorRevenue(err.message))
+      .finally(() => setLoadingRevenue(false));
+  }, []);
+
+  const handleClaim = () => {
+    setClaiming(true);
+    fetch(`${BASE}/api/claims/claim?genre=${encodeURIComponent(GENRE)}`, {
+      method: "POST",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Claim error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setRevenue(data))
+      .catch((err) => setErrorRevenue(err.message))
+      .finally(() => setClaiming(false));
+  };
+
+  const fmt = (n) => {
+    if (n === undefined || n === null) return "—";
+    return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  const fmtViews = (n) => {
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + "k";
+    return String(n);
+  };
+
+  const profitMultiplier = revenue && revenue.baseRevenue > 0
+    ? (revenue.totalEstimatedRevenue / revenue.baseRevenue).toFixed(1)
+    : breakdown?.performanceMultiplier ?? "—";
 
   const breakdownRows = breakdown
     ? [
@@ -46,11 +87,7 @@ export default function Claims() {
         },
         {
           label: "avg monthly views from trend",
-          value: breakdown.avgMonthlyViews >= 1_000_000
-            ? (breakdown.avgMonthlyViews / 1_000_000).toFixed(1) + "M"
-            : breakdown.avgMonthlyViews >= 1_000
-            ? (breakdown.avgMonthlyViews / 1_000).toFixed(1) + "k"
-            : String(breakdown.avgMonthlyViews),
+          value: fmtViews(breakdown.avgMonthlyViews),
           percent: 0,
           icon: "👥",
           type: "neutral",
@@ -81,36 +118,43 @@ export default function Claims() {
             <span>ESTIMATED ADDITIONAL REVENUE (TREND)</span>
           </div>
 
-          <div className="claims-amount">$3,842</div>
+          {loadingRevenue && <div className="claims-status-text">Loading revenue…</div>}
+          {errorRevenue && <div className="claims-status-text claims-status-text--error">Failed to load: {errorRevenue}</div>}
 
-          <div className="claims-period">
-            <img src="/icons/claims/calendar.svg" alt="" className="claims-icon claims-icon--inline" />
-            <span>from Mar 1 - Mar 31 (trend-driven videos)</span>
-          </div>
+          {!loadingRevenue && !errorRevenue && revenue && (
+            <>
+              <div className="claims-amount">{fmt(revenue.totalEstimatedRevenue)}</div>
 
-          <div className="claims-row">
-            <span>non-trend revenue</span>
-            <span>$1,210</span>
-          </div>
-          <div className="claims-divider" />
+              <div className="claims-period">
+                <img src="/icons/claims/calendar.svg" alt="" className="claims-icon claims-icon--inline" />
+                <span>from {revenue.periodStart} - {revenue.periodEnd} (trend-driven videos)</span>
+              </div>
 
-          <div className="claims-row">
-            <span>trend boost</span>
-            <span className="claims-positive">+$2,632</span>
-          </div>
-          <div className="claims-divider" />
+              <div className="claims-row">
+                <span>non-trend revenue</span>
+                <span>{fmt(revenue.baseRevenue)}</span>
+              </div>
+              <div className="claims-divider" />
 
-          <div className="claims-balance-card">
-            <div className="claims-balance-label">unclaimed balance</div>
-            <div className="claims-balance-value-row">
-              <span className="claims-balance-value">$1,947</span>
-              <span className="claims-balance-status">pending</span>
-            </div>
-          </div>
+              <div className="claims-row">
+                <span>trend boost</span>
+                <span className="claims-positive">+{fmt(revenue.trendBoost)}</span>
+              </div>
+              <div className="claims-divider" />
 
-          <button className="claims-cta-btn" type="button">
+              <div className="claims-balance-card">
+                <div className="claims-balance-label">unclaimed balance</div>
+                <div className="claims-balance-value-row">
+                  <span className="claims-balance-value">{fmt(revenue.unclaimedBalance)}</span>
+                  <span className="claims-balance-status">pending</span>
+                </div>
+              </div>
+            </>
+          )}
+
+          <button className="claims-cta-btn" type="button" onClick={handleClaim} disabled={claiming}>
             <span className="claims-cta-icon">$</span>
-            Claim earnings
+            {claiming ? "Claiming…" : "Claim earnings"}
           </button>
         </section>
 
@@ -120,10 +164,10 @@ export default function Claims() {
             <span>BREAKDOWN: WHY TREND WORKS</span>
           </div>
 
-          {loading && <div className="claims-status-text">Loading breakdown…</div>}
-          {error   && <div className="claims-status-text claims-status-text--error">Failed to load: {error}</div>}
+          {loadingBreakdown && <div className="claims-status-text">Loading breakdown…</div>}
+          {errorBreakdown && <div className="claims-status-text claims-status-text--error">Failed to load: {errorBreakdown}</div>}
 
-          {!loading && !error && (
+          {!loadingBreakdown && !errorBreakdown && (
             <>
               <div className="claims-breakdown-list">
                 {breakdownRows.map((row) => (
@@ -149,7 +193,7 @@ export default function Claims() {
                 <strong>performance guarantee:</strong> trend adaptation yields
                 <br />
                 <span className="claims-muted-strong">
-                  avg. {breakdown?.performanceMultiplier ?? "2.3"}x profit (based on your history)
+                  avg. {profitMultiplier}x profit (based on your history)
                 </span>
               </p>
 
@@ -165,7 +209,9 @@ export default function Claims() {
             <img src="/icons/claims/file.svg" alt="" className="claims-icon claims-icon--file" />
             <div>
               <div className="claims-last-paid-label">last claim paid</div>
-              <div className="claims-last-paid-value">April 2, 2025 &middot; $2,410</div>
+              <div className="claims-last-paid-value">
+                {revenue?.lastClaimDate ?? "—"} &middot; {fmt(revenue?.lastClaimAmount)}
+              </div>
             </div>
           </div>
         </section>
