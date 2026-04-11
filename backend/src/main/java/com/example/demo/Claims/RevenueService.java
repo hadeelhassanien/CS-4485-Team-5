@@ -38,7 +38,7 @@ public class RevenueService {
         double baseRevenue =(snapshot.getViews() / 1000.0) * BASE_CPM;
         double trendBoost =(snapshot.getViews() / 1000.0) * (TREND_CPM - BASE_CPM);
         double totalRevenue =baseRevenue + trendBoost;
-        double alreadyClaimed= claimRepository.sumAllClaimedAmounts();
+        double alreadyClaimed = claimRepository.sumClaimedAmountsByGenre(genre);
         double unclaimedBalance= Math.max(0, totalRevenue - alreadyClaimed);
 
         String lastClaimDate   = "N/A";
