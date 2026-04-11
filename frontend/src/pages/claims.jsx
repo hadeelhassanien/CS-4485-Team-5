@@ -1,14 +1,62 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./claims.css";
 
-const breakdownRows = [
-  { label: "higher CPM on battle royale", value: "+42%", percent: 83, icon: "↗️", type: "positive" },
-  { label: "engagement rate", value: "+27%", percent: 70, icon: "📈", type: "positive" },
-  { label: "new subscribers from trend", value: "1,230", percent: 0, icon: "👥", type: "neutral" },
-];
+const BASE = "https://165.232.136.214.sslip.io";
 
 export default function Claims() {
   const navigate = useNavigate();
+  const [breakdown, setBreakdown] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // These could come from user state/context later — hardcoded for now
+  const fromGenre = "Horror";
+  const toGenre = "Battle Royale";
+
+  useEffect(() => {
+    fetch(
+      `${BASE}/api/genres/breakdown?fromGenre=${encodeURIComponent(fromGenre)}&toGenre=${encodeURIComponent(toGenre)}`,
+      { headers: { "ngrok-skip-browser-warning": "true" } }
+    )
+      .then((res) => {
+        if (!res.ok) throw new Error(`Breakdown error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setBreakdown(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [fromGenre, toGenre]);
+
+  const breakdownRows = breakdown
+    ? [
+        {
+          label: `higher CPM on ${breakdown.toGenre?.toLowerCase() ?? toGenre.toLowerCase()}`,
+          value: `+${breakdown.cpmIncrease}%`,
+          percent: Math.min(breakdown.cpmIncrease, 100),
+          icon: "↗️",
+          type: "positive",
+        },
+        {
+          label: "engagement rate",
+          value: breakdown.engagementRateDiff > 0 ? `+${breakdown.engagementRateDiff}%` : `${breakdown.engagementRateDiff}%`,
+          percent: Math.min(Math.abs(breakdown.engagementRateDiff), 100),
+          icon: "📈",
+          type: breakdown.engagementRateDiff > 0 ? "positive" : "neutral",
+        },
+        {
+          label: "avg monthly views from trend",
+          value: breakdown.avgMonthlyViews >= 1_000_000
+            ? (breakdown.avgMonthlyViews / 1_000_000).toFixed(1) + "M"
+            : breakdown.avgMonthlyViews >= 1_000
+            ? (breakdown.avgMonthlyViews / 1_000).toFixed(1) + "k"
+            : String(breakdown.avgMonthlyViews),
+          percent: 0,
+          icon: "👥",
+          type: "neutral",
+        },
+      ]
+    : [];
 
   return (
     <div className="claims-page">
@@ -72,33 +120,46 @@ export default function Claims() {
             <span>BREAKDOWN: WHY TREND WORKS</span>
           </div>
 
-          <div className="claims-breakdown-list">
-            {breakdownRows.map((row) => (
-              <div key={row.label}>
-                <div className="claims-row claims-row--spaced">
-                  <span>
-                    {row.icon} {row.label}
-                  </span>
-                  <span className={row.type === "positive" ? "claims-positive" : "claims-neutral"}>
-                    {row.value}
-                  </span>
-                </div>
-                {row.percent > 0 && (
-                  <div className="claims-progress-track">
-                    <div className="claims-progress-fill" style={{ width: `${row.percent}%` }} />
-                  </div>
-                )}
-                <div className="claims-divider" />
-              </div>
-            ))}
-          </div>
+          {loading && <div className="claims-status-text">Loading breakdown…</div>}
+          {error   && <div className="claims-status-text claims-status-text--error">Failed to load: {error}</div>}
 
-          <p className="claims-guarantee">
-            <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--inline claims-guarantee-icon" />
-            <strong>performance guarantee:</strong> trend adaptation yields
-            <br />
-            <span className="claims-muted-strong">avg. 2.3x profit (based on your history)</span>
-          </p>
+          {!loading && !error && (
+            <>
+              <div className="claims-breakdown-list">
+                {breakdownRows.map((row) => (
+                  <div key={row.label}>
+                    <div className="claims-row claims-row--spaced">
+                      <span>{row.icon} {row.label}</span>
+                      <span className={row.type === "positive" ? "claims-positive" : "claims-neutral"}>
+                        {row.value}
+                      </span>
+                    </div>
+                    {row.percent > 0 && (
+                      <div className="claims-progress-track">
+                        <div className="claims-progress-fill" style={{ width: `${row.percent}%` }} />
+                      </div>
+                    )}
+                    <div className="claims-divider" />
+                  </div>
+                ))}
+              </div>
+
+              <p className="claims-guarantee">
+                <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--inline claims-guarantee-icon" />
+                <strong>performance guarantee:</strong> trend adaptation yields
+                <br />
+                <span className="claims-muted-strong">
+                  avg. {breakdown?.performanceMultiplier ?? "2.3"}x profit (based on your history)
+                </span>
+              </p>
+
+              {breakdown?.message && (
+                <p className="claims-muted-strong" style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>
+                  {breakdown.message}
+                </p>
+              )}
+            </>
+          )}
 
           <div className="claims-last-paid-card">
             <img src="/icons/claims/file.svg" alt="" className="claims-icon claims-icon--file" />
