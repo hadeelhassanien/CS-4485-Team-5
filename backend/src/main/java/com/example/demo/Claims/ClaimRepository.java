@@ -12,4 +12,7 @@ public interface ClaimRepository extends JpaRepository<Claim, Long> {
 
     @Query("SELECT COALESCE(SUM(c.amountClaimed), 0) FROM Claim c")
     double sumAllClaimedAmounts();
+
+    @Query("SELECT COALESCE(SUM(c.amountClaimed), 0) FROM Claim c WHERE c.genre = :genre")
+    double sumClaimedAmountsByGenre(String genre);
 }
