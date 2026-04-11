@@ -76,8 +76,7 @@ export default function Trends() {
 
 
   useEffect(() => {
-  const BASE = "https://cleistogamously-phosphaturic-marlen.ngrok-free.dev";
-
+  const BASE = "https://165.232.136.214.sslip.io";
   // Genres is required
   fetch(`${BASE}/api/genres`, { 
     headers: { "ngrok-skip-browser-warning": "true" } // to suppress ngrok's browser warning page
