@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom"; 
+import "./trends.css";
 import "./claims.css";
 
 const BASE = "https://165.232.136.214.sslip.io";
@@ -8,7 +9,7 @@ export default function Claims() {
   const navigate = useNavigate();
   const [genres, setGenres] = useState([]);
   const [fromGenre, setFromGenre] = useState("Horror");
-  const [topGenre, setTopGenre] = useState(null); // top trending genre = toGenre
+  const [topGenre, setTopGenre] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [loadingGenres, setLoadingGenres] = useState(true);
@@ -17,8 +18,19 @@ export default function Claims() {
   const [errorBreakdown, setErrorBreakdown] = useState(null);
   const [errorRevenue, setErrorRevenue] = useState(null);
   const [claiming, setClaiming] = useState(false);
+  const [fromDropdownOpen, setFromDropdownOpen] = useState(false);
+  const fromDropdownRef = useRef(null);
 
-  // Step 1: fetch all genres and derive top trending genre
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (fromDropdownRef.current && !fromDropdownRef.current.contains(e.target)) {
+        setFromDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     fetch(`${BASE}/api/genres`)
       .then((res) => {
@@ -27,7 +39,6 @@ export default function Claims() {
       })
       .then((data) => {
         setGenres(data);
-        // top trending = highest views (same logic as trends.jsx)
         const top = [...data].sort((a, b) => b.views - a.views)[0];
         setTopGenre(top?.name ?? null);
       })
@@ -35,7 +46,6 @@ export default function Claims() {
       .finally(() => setLoadingGenres(false));
   }, []);
 
-  // Step 2: fetch breakdown and revenue whenever fromGenre or topGenre changes
   useEffect(() => {
     if (!topGenre || !fromGenre) return;
 
@@ -140,7 +150,6 @@ export default function Claims() {
       </h1>
 
       <div className="claims-grid">
-        {/* Left card — revenue */}
         <section className="claims-card claims-card--left">
           <div className="claims-section-label">
             <img src="/icons/claims/coin.svg" alt="" className="claims-icon claims-icon--section" />
@@ -159,18 +168,32 @@ export default function Claims() {
                 <span>from {revenue.periodStart} - {revenue.periodEnd} (trend-driven videos)</span>
               </div>
 
-              {/* fromGenre dropdown */}
               <div className="claims-row">
-                <select
-                  className="claims-genre-select"
-                  value={fromGenre}
-                  onChange={(e) => setFromGenre(e.target.value)}
-                  disabled={loadingGenres}
-                >
-                  {genres.map((g) => (
-                    <option key={g.name} value={g.name}>{g.name}</option>
-                  ))}
-                </select>
+                <div className="trends-genre-dropdown-wrap" ref={fromDropdownRef}>
+                  <div
+                    className="trends-sub-card-label trends-sub-card-label--dropdown"
+                    onClick={(e) => { e.stopPropagation(); setFromDropdownOpen((o) => !o); }}
+                  >
+                    {fromGenre.toLowerCase()} <span className="trends-dropdown-caret">{fromDropdownOpen ? "▴" : "▾"}</span>
+                  </div>
+                  {fromDropdownOpen && (
+                    <ul className="trends-genre-dropdown">
+                      {genres.map((g) => (
+                        <li
+                          key={g.name}
+                          className={`trends-genre-dropdown-item${g.name === fromGenre ? " trends-genre-dropdown-item--active" : ""}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFromGenre(g.name);
+                            setFromDropdownOpen(false);
+                          }}
+                        >
+                          {g.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <span>{fmt(revenue.baseRevenue)}</span>
               </div>
               <div className="claims-divider" />
@@ -197,7 +220,6 @@ export default function Claims() {
           </button>
         </section>
 
-        {/* Right card — breakdown */}
         <section className="claims-card claims-card--right">
           <div className="claims-section-label">
             <img src="/icons/claims/pie.svg" alt="" className="claims-icon claims-icon--section" />
