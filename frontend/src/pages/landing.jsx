@@ -46,7 +46,17 @@ export default function Landing() {
           </p>
 
           <div className="main__features">
-            <div className="main__feature">
+            <div 
+              className="main__feature"
+              onClick={() => navigate("/trends")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  navigate("/trends");
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <div className="main__featureIcon">
                 <img
                   className="main__svgIcon"
@@ -86,7 +96,17 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="main__feature">
+            <div 
+              className="main__feature"
+              onClick={() => navigate("/claims")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  navigate("/trends");
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >            
               <div className="main__featureIcon">
                 <img
                   className="main__svgIcon"

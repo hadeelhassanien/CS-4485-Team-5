@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+
 import "./narratives.css";
 
 const recentNarratives = [
@@ -46,12 +47,15 @@ export default function Narratives() {
     <div className="narratives-page">
       <header className="narratives-header">
         <img src="/icons/landing/creatorXP.svg" alt="CreatorXP" className="narratives-brand-logo" />
-        <img
-          src="/icons/claims/houseIcon.svg"
-          alt="Home"
-          className="narratives-home-btn"
-          onClick={() => navigate("/")}
-        />
+      <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+          <nav className="main__nav">
+            <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
+            <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
+            <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>Home</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+          </nav>
+          <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
+        </div>
       </header>
 
       <h1 className="narratives-title">
