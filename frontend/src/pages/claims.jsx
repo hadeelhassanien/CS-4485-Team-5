@@ -9,6 +9,7 @@ export default function Claims() {
   const [genres, setGenres] = useState([]);
   const [fromGenre, setFromGenre] = useState("Horror");
   const [topGenre, setTopGenre] = useState(null);
+  const [topGenreData, setTopGenreData] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
   const [fromRevenue, setFromRevenue] = useState(null);
   const [topRevenue, setTopRevenue] = useState(null);
@@ -31,7 +32,6 @@ export default function Claims() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch all genres and derive top trending genre
   useEffect(() => {
     fetch(`${BASE}/api/genres`)
       .then((res) => {
@@ -42,12 +42,12 @@ export default function Claims() {
         setGenres(data);
         const top = [...data].sort((a, b) => b.views - a.views)[0];
         setTopGenre(top?.name ?? null);
+        setTopGenreData(top ?? null);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoadingGenres(false));
   }, []);
 
-  // Fetch breakdown, fromRevenue, and topRevenue whenever fromGenre or topGenre changes
   useEffect(() => {
     if (!topGenre || !fromGenre) return;
 
@@ -67,7 +67,6 @@ export default function Claims() {
     setLoadingRevenue(true);
     setErrorRevenue(null);
 
-    // Fetch both fromGenre and topGenre revenue in parallel
     Promise.all([
       fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(fromGenre)}`).then((res) => {
         if (!res.ok) throw new Error(`Revenue error: ${res.status}`);
@@ -93,11 +92,12 @@ export default function Claims() {
       method: "POST",
     })
       .then((res) => {
+        if (res.status === 500) throw new Error("No unclaimed balance available.");
         if (!res.ok) throw new Error(`Claim error: ${res.status}`);
         return res.json();
       })
       .then((data) => setTopRevenue(data))
-      .catch((err) => setErrorRevenue(err.message))
+      .catch((err) => alert(err.message))
       .finally(() => setClaiming(false));
   };
 
@@ -113,9 +113,6 @@ export default function Claims() {
     return String(n);
   };
 
-  // Total estimated revenue = topGenre's total (what they could earn)
-  // Base revenue = fromGenre's base (what they currently earn)
-  // Trend boost = difference between topGenre total and fromGenre total
   const totalEstimatedRevenue = topRevenue?.totalEstimatedRevenue ?? null;
   const baseRevenue = fromRevenue?.baseRevenue ?? null;
   const trendBoost = (topRevenue && fromRevenue)
@@ -126,6 +123,15 @@ export default function Claims() {
   const profitMultiplier = (topRevenue && fromRevenue && fromRevenue.totalEstimatedRevenue > 0)
     ? (topRevenue.totalEstimatedRevenue / fromRevenue.totalEstimatedRevenue).toFixed(1)
     : breakdown?.performanceMultiplier ?? "—";
+
+  const engagementRisk = topGenreData && topGenreData.views > 0
+    ? (() => {
+        const ratio = (topGenreData.likes / topGenreData.views) * 100;
+        if (ratio >= 5) return { label: "Low Risk", color: "#62DF9C", detail: `${ratio.toFixed(1)}% like ratio` };
+        if (ratio >= 2) return { label: "Medium Risk", color: "#F5B17B", detail: `${ratio.toFixed(1)}% like ratio` };
+        return { label: "High Risk", color: "#FF7B7B", detail: `${ratio.toFixed(1)}% like ratio` };
+      })()
+    : null;
 
   const breakdownRows = breakdown
     ? [
@@ -158,8 +164,8 @@ export default function Claims() {
   return (
     <div className="claims-page">
       <header className="claims-header">
-          <img src="/icons/landing/creatorXP.svg" alt="CreatorXP" className="claims-brand-logo" />
-      <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+        <img src="/icons/landing/creatorXP.svg" alt="CreatorXP" className="claims-brand-logo" />
+        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           <nav className="main__nav">
             <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
             <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
@@ -273,6 +279,22 @@ export default function Claims() {
                     <div className="claims-divider" />
                   </div>
                 ))}
+
+                {/* Engagement risk — inserted after engagement rate row */}
+                {engagementRisk && (
+                  <div>
+                    <div className="claims-row claims-row--spaced">
+                      <span>⚠️ engagement risk</span>
+                      <span style={{ color: engagementRisk.color, fontWeight: 600 }}>
+                        {engagementRisk.label}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#8E93AB", marginBottom: "8px" }}>
+                      {engagementRisk.detail} on {topGenre?.toLowerCase()}
+                    </div>
+                    <div className="claims-divider" />
+                  </div>
+                )}
               </div>
 
               <p className="claims-guarantee">
