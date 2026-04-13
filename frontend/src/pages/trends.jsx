@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import "./trends.css";
 import.meta.env.VITE_API_URL
 
@@ -207,7 +207,15 @@ export default function Trends() {
       {/* Header */}
       <div className="trends-header">
         <img src="/icons/trends/creatorXP.svg" alt="CreatorXP" className="trends-brand-logo" />
-        <img src="/icons/trends/houseIcon.svg" alt="Home" className="trends-icon-md trends-home-btn" onClick={() => navigate("/")} />
+        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+            <nav className="main__nav">
+              <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
+              <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
+              <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>Home</NavLink>
+              <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+            </nav>
+            <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
+          </div>
       </div>
 
       <h1 className="trends-title">Trends · gaming genres</h1>

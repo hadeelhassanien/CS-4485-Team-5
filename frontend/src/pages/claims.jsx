@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom"; 
-import "./trends.css";
+import { NavLink, useNavigate } from "react-router-dom";
 import "./claims.css";
 
 const BASE = "https://165.232.136.214.sslip.io";
@@ -11,7 +10,8 @@ export default function Claims() {
   const [fromGenre, setFromGenre] = useState("Horror");
   const [topGenre, setTopGenre] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
-  const [revenue, setRevenue] = useState(null);
+  const [fromRevenue, setFromRevenue] = useState(null);
+  const [topRevenue, setTopRevenue] = useState(null);
   const [loadingGenres, setLoadingGenres] = useState(true);
   const [loadingBreakdown, setLoadingBreakdown] = useState(false);
   const [loadingRevenue, setLoadingRevenue] = useState(false);
@@ -31,6 +31,7 @@ export default function Claims() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Fetch all genres and derive top trending genre
   useEffect(() => {
     fetch(`${BASE}/api/genres`)
       .then((res) => {
@@ -46,6 +47,7 @@ export default function Claims() {
       .finally(() => setLoadingGenres(false));
   }, []);
 
+  // Fetch breakdown, fromRevenue, and topRevenue whenever fromGenre or topGenre changes
   useEffect(() => {
     if (!topGenre || !fromGenre) return;
 
@@ -64,12 +66,22 @@ export default function Claims() {
 
     setLoadingRevenue(true);
     setErrorRevenue(null);
-    fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(topGenre)}`)
-      .then((res) => {
+
+    // Fetch both fromGenre and topGenre revenue in parallel
+    Promise.all([
+      fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(fromGenre)}`).then((res) => {
         if (!res.ok) throw new Error(`Revenue error: ${res.status}`);
         return res.json();
+      }),
+      fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(topGenre)}`).then((res) => {
+        if (!res.ok) throw new Error(`Revenue error: ${res.status}`);
+        return res.json();
+      }),
+    ])
+      .then(([fromRev, topRev]) => {
+        setFromRevenue(fromRev);
+        setTopRevenue(topRev);
       })
-      .then((data) => setRevenue(data))
       .catch((err) => setErrorRevenue(err.message))
       .finally(() => setLoadingRevenue(false));
   }, [fromGenre, topGenre]);
@@ -84,7 +96,7 @@ export default function Claims() {
         if (!res.ok) throw new Error(`Claim error: ${res.status}`);
         return res.json();
       })
-      .then((data) => setRevenue(data))
+      .then((data) => setTopRevenue(data))
       .catch((err) => setErrorRevenue(err.message))
       .finally(() => setClaiming(false));
   };
@@ -101,8 +113,18 @@ export default function Claims() {
     return String(n);
   };
 
-  const profitMultiplier = revenue && revenue.baseRevenue > 0
-    ? (revenue.totalEstimatedRevenue / revenue.baseRevenue).toFixed(1)
+  // Total estimated revenue = topGenre's total (what they could earn)
+  // Base revenue = fromGenre's base (what they currently earn)
+  // Trend boost = difference between topGenre total and fromGenre total
+  const totalEstimatedRevenue = topRevenue?.totalEstimatedRevenue ?? null;
+  const baseRevenue = fromRevenue?.baseRevenue ?? null;
+  const trendBoost = (topRevenue && fromRevenue)
+    ? Math.max(0, topRevenue.totalEstimatedRevenue - fromRevenue.totalEstimatedRevenue)
+    : null;
+  const unclaimedBalance = topRevenue?.unclaimedBalance ?? null;
+
+  const profitMultiplier = (topRevenue && fromRevenue && fromRevenue.totalEstimatedRevenue > 0)
+    ? (topRevenue.totalEstimatedRevenue / fromRevenue.totalEstimatedRevenue).toFixed(1)
     : breakdown?.performanceMultiplier ?? "—";
 
   const breakdownRows = breakdown
@@ -136,13 +158,16 @@ export default function Claims() {
   return (
     <div className="claims-page">
       <header className="claims-header">
-        <img src="/icons/landing/creatorXP.svg" alt="CreatorXP" className="claims-brand-logo" />
-        <img
-          src="/icons/claims/houseIcon.svg"
-          alt="Home"
-          className="claims-home-btn"
-          onClick={() => navigate("/")}
-        />
+          <img src="/icons/landing/creatorXP.svg" alt="CreatorXP" className="claims-brand-logo" />
+      <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+          <nav className="main__nav">
+            <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
+            <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
+            <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>Home</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+          </nav>
+          <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
+        </div>
       </header>
 
       <h1 className="claims-title">
@@ -159,13 +184,13 @@ export default function Claims() {
           {loadingRevenue && <div className="claims-status-text">Loading revenue…</div>}
           {errorRevenue && <div className="claims-status-text claims-status-text--error">Failed to load: {errorRevenue}</div>}
 
-          {!loadingRevenue && !errorRevenue && revenue && (
+          {!loadingRevenue && !errorRevenue && topRevenue && fromRevenue && (
             <>
-              <div className="claims-amount">{fmt(revenue.totalEstimatedRevenue)}</div>
+              <div className="claims-amount">{fmt(totalEstimatedRevenue)}</div>
 
               <div className="claims-period">
                 <img src="/icons/claims/calendar.svg" alt="" className="claims-icon claims-icon--inline" />
-                <span>from {revenue.periodStart} - {revenue.periodEnd} (trend-driven videos)</span>
+                <span>from {topRevenue.periodStart} - {topRevenue.periodEnd} (trend-driven videos)</span>
               </div>
 
               <div className="claims-row">
@@ -194,20 +219,20 @@ export default function Claims() {
                     </ul>
                   )}
                 </div>
-                <span>{fmt(revenue.baseRevenue)}</span>
+                <span>{fmt(baseRevenue)}</span>
               </div>
               <div className="claims-divider" />
 
               <div className="claims-row">
                 <span>trend boost</span>
-                <span className="claims-positive">+{fmt(revenue.trendBoost)}</span>
+                <span className="claims-positive">+{fmt(trendBoost)}</span>
               </div>
               <div className="claims-divider" />
 
               <div className="claims-balance-card">
                 <div className="claims-balance-label">unclaimed balance</div>
                 <div className="claims-balance-value-row">
-                  <span className="claims-balance-value">{fmt(revenue.unclaimedBalance)}</span>
+                  <span className="claims-balance-value">{fmt(unclaimedBalance)}</span>
                   <span className="claims-balance-status">pending</span>
                 </div>
               </div>
@@ -272,7 +297,7 @@ export default function Claims() {
             <div>
               <div className="claims-last-paid-label">last claim paid</div>
               <div className="claims-last-paid-value">
-                {revenue?.lastClaimDate ?? "—"} &middot; {fmt(revenue?.lastClaimAmount)}
+                {topRevenue?.lastClaimDate ?? "—"} &middot; {fmt(topRevenue?.lastClaimAmount)}
               </div>
             </div>
           </div>

@@ -1,0 +1,181 @@
+
+.learnmore-page {
+  background: #282A33;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  padding: 24px 48px;
+  color: #fff;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+.learnmore-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.learnmore-brand-logo {
+  height: 16px;
+  width: auto;
+}
+
+.learnmore-home-btn {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+}
+
+.learnmore-intro {
+  margin-bottom: 2rem;
+}
+
+.learnmore-eyebrow {
+  font-size: 13px;
+  color: #BEC4DB;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin: 0 0 0.5rem;
+}
+
+.learnmore-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #F6F3FF;
+  margin: 0 0 1rem;
+  line-height: 1.2;
+}
+
+.learnmore-subtitle {
+  font-size: 16px;
+  color: #8E93AB;
+  line-height: 1.7;
+  max-width: 680px;
+  margin: 0;
+}
+
+.learnmore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 2rem;
+}
+
+.learnmore-card {
+  background: #1F2129;
+  border: 2px solid #414552;
+  border-radius: 28px;
+  padding: 20px 22px;
+  box-shadow: 0px 6px 10px 5px rgba(0, 0, 0, 0.25);
+}
+
+.learnmore-card--cta {
+  background: #2C2F3C;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.learnmore-card-label {
+  font-size: 13px;
+  color: #BEC4DB;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 8px;
+}
+
+.learnmore-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.learnmore-card-body {
+  font-size: 14px;
+  color: #8E93AB;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.learnmore-cta-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.learnmore-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  background: #6A3DE8;
+  border: 1px solid #B286FF;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s;
+}
+
+.learnmore-btn:hover {
+  background: #7B4FF5;
+}
+
+.learnmore-steps {
+  border-top: 1px solid #373B4A;
+  padding-top: 1.5rem;
+}
+
+.learnmore-steps-label {
+  font-size: 13px;
+  color: #BEC4DB;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 400;
+  margin: 0 0 1rem;
+}
+
+.learnmore-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.learnmore-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.learnmore-step-num {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2D2F3B;
+  border: 1px solid #414552;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9E77ED;
+  flex-shrink: 0;
+}
+
+.learnmore-step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px;
+}
+
+.learnmore-step-body {
+  font-size: 13px;
+  color: #8E93AB;
+  margin: 0;
+  line-height: 1.5;
+}
