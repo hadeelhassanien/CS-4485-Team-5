@@ -204,11 +204,9 @@ public class GamingGenreService {
                     result.put("name", genre.getName());
                     result.put("currentViews", genre.getViews());
                     result.put("predictedViews", predictedViews);
-                    result.put("predictedGrowthPercent", Math.round(genre.getChangePercent() * 10000.0) / 100.0); //round to 1 decimal
-                    //result.put("predictedGrowthPercent", genre.getChangePercent() * 100);
+                    result.put("predictedGrowthPercent", Math.round(genre.getChangePercent() * 10000.0) / 100.0);
                     return result;
                 })
-                // Sort by predicted growth % descending
                 .sorted((a, b) -> Double.compare(
                     (double) b.get("predictedGrowthPercent"),
                     (double) a.get("predictedGrowthPercent")
@@ -230,12 +228,10 @@ public class GamingGenreService {
             );
         }
 
-        // Top genre by predicted growth
         Map<String, Object> topGenre = predicted.get(0);
         String recommendedGenre = (String) topGenre.get("name");
         double predictedGrowth = (double) topGenre.get("predictedGrowthPercent");
 
-        // Next month peak — top 2 genres
         String secondGenre = predicted.size() > 1 ? (String) predicted.get(1).get("name") : "";
         String nextMonthPeak = recommendedGenre + (secondGenre.isEmpty() ? "" : " / " + secondGenre);
 
@@ -275,7 +271,6 @@ public class GamingGenreService {
     public BreakdownDTO getBreakdown(String fromGenre, String toGenre) {
         List<GamingGenre> allGenres = getAllGenres();
 
-        // Find the from and to genre data from DB
         GamingGenre fromData = allGenres.stream()
                 .filter(g -> g.getName().equalsIgnoreCase(fromGenre))
                 .findFirst().orElse(null);
@@ -297,32 +292,31 @@ public class GamingGenreService {
             );
         }
 
-        // CPM increase %
         double fromCPM = CPM_BY_GENRE.getOrDefault(fromGenre, 3.0);
         double toCPM   = CPM_BY_GENRE.getOrDefault(toGenre, 3.0);
 
-        if (toCPM <= fromCPM) {
-            return new BreakdownDTO(
-                fromGenre, toGenre,
-                (int) Math.round(((toCPM - fromCPM) / fromCPM) * 100),
-                0,
-                toData.getViews(),
-                (double) Math.round((toCPM / fromCPM) * 10.0) / 10.0,
-                fromGenre,  // recommendedGenre stays as fromGenre
-                "No better genre found — " + fromGenre + " already has a high CPM"
-            );
-        }
-
-        int cpmIncrease = (int) Math.round(((toCPM - fromCPM) / fromCPM) * 100);
-
-        // Engagement rate = (likes + comments) / views * 100
+        // Calculate engagement diff
         double fromEng = fromData.getViews() > 0
                 ? ((double)(fromData.getLikes() + fromData.getComments()) / fromData.getViews()) * 100
                 : 0;
         double toEng = toData.getViews() > 0
                 ? ((double)(toData.getLikes() + toData.getComments()) / toData.getViews()) * 100
                 : 0;
-        int engagementRateDiff = (int) Math.round(fromEng > 0 ? ((toEng - fromEng) / fromEng) * 100 : 0);
+        int engagementRateDiff = (int) Math.round(toEng - fromEng);
+
+        if (toCPM <= fromCPM) {
+            return new BreakdownDTO(
+                fromGenre, toGenre,
+                (int) Math.round(((toCPM - fromCPM) / fromCPM) * 100),
+                engagementRateDiff,  // real value instead of hardcoded 0
+                toData.getViews(),
+                (double) Math.round((toCPM / fromCPM) * 10.0) / 10.0,
+                fromGenre,
+                "No better genre found — " + fromGenre + " already has a high CPM"
+            );
+        }
+
+        int cpmIncrease = (int) Math.round(((toCPM - fromCPM) / fromCPM) * 100);
 
         // Avg monthly views of trending genre
         long avgMonthlyViews = toData.getViews();
@@ -348,7 +342,7 @@ public class GamingGenreService {
             avgMonthlyViews,
             multiplier,
             recommendedGenre,
-            toGenre + " is a better genre for revenue growth"  // normal message
+            toGenre + " is a better genre for revenue growth"
         );
     }
 }
