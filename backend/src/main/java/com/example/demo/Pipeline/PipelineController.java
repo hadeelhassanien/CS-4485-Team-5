@@ -15,39 +15,11 @@ public class PipelineController {
         this.pipelineDataService = pipelineDataService;
     }
 
-    @PostMapping("/genres/classifications")
-    public ResponseEntity<Map<String, Object>> ingestGenreClassifications(
-            @RequestBody GenreBatchReq request
-    ) {
-        int count = pipelineDataService.upsertGenreClassifications(
-                request != null ? request.getClassifications() : null
-        );
-
-        return ResponseEntity.ok(Map.of(
-                "status", "ok",
-                "updatedCount", count
-        ));
-    }
-
     @PostMapping("/revenue/profile")
     public ResponseEntity<RevenueModel> saveRevenueProfile(
             @RequestBody RevenueModelReq request
     ) {
         return ResponseEntity.ok(pipelineDataService.saveRevenueProfile(request));
-    }
-
-    @PostMapping("/claims/extracted")
-    public ResponseEntity<Map<String, Object>> ingestExtractedClaims(
-            @RequestBody ExtractedVideoClaimBatchReq request
-    ) {
-        int count = pipelineDataService.replaceExtractedClaims(
-                request != null ? request.getClaims() : null
-        );
-
-        return ResponseEntity.ok(Map.of(
-                "status", "ok",
-                "savedCount", count
-        ));
     }
 
     @PostMapping("/claims/raw-ds")

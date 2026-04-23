@@ -16,47 +16,15 @@ public class PipelineDataService {
 
     private static final Pattern SENTENCE_SPLIT = Pattern.compile("(?<=[.!?])\\s+");
 
-    private final VideoClassificationRepo classificationRepository;
     private final RevenueModelRepo revenueModelRepo;
     private final ExtractedVideoClaimRepo extractedVideoClaimRepo;
 
     public PipelineDataService(
-            VideoClassificationRepo classificationRepository,
             RevenueModelRepo revenueModelRepo,
             ExtractedVideoClaimRepo extractedVideoClaimRepo
     ) {
-        this.classificationRepository = classificationRepository;
         this.revenueModelRepo = revenueModelRepo;
         this.extractedVideoClaimRepo = extractedVideoClaimRepo;
-    }
-
-    public int upsertGenreClassifications(List<VideoClassificationInput> inputs) {
-        if (inputs == null || inputs.isEmpty()) {
-            return 0;
-        }
-
-        int updated = 0;
-
-        for (VideoClassificationInput input : inputs) {
-            if (input == null || isBlank(input.getVideoId()) || isBlank(input.getGenreName())) {
-                continue;
-            }
-
-            VideoGenreClassification classification = classificationRepository
-                    .findByVideoId(input.getVideoId())
-                    .orElseGet(VideoGenreClassification::new);
-
-            classification.setVideoId(input.getVideoId().trim());
-            classification.setGenreName(input.getGenreName().trim());
-            classification.setConfidence(input.getConfidence());
-            classification.setModelVersion(blankToNull(input.getModelVersion()));
-            classification.setClassifiedAt(LocalDateTime.now());
-
-            classificationRepository.save(classification);
-            updated++;
-        }
-
-        return updated;
     }
 
     public RevenueModel saveRevenueProfile(RevenueModelReq request) {
@@ -82,40 +50,6 @@ public class PipelineDataService {
         model.setCreatedAt(LocalDateTime.now());
 
         return revenueModelRepo.save(model);
-    }
-
-    public int replaceExtractedClaims(List<ExtractedVideoClaimInput> inputs) {
-        if (inputs == null || inputs.isEmpty()) {
-            return 0;
-        }
-
-        int saved = 0;
-        Set<String> clearedVideoIds = new LinkedHashSet<>();
-
-        for (ExtractedVideoClaimInput input : inputs) {
-            if (input == null || isBlank(input.getVideoId()) || isBlank(input.getClaimText())) {
-                continue;
-            }
-
-            String videoId = input.getVideoId().trim();
-            if (clearedVideoIds.add(videoId)) {
-                extractedVideoClaimRepo.deleteByVideoId(videoId);
-            }
-
-            ExtractedVideoClaim claim = new ExtractedVideoClaim();
-            claim.setVideoId(videoId);
-            claim.setSourceTitle(blankToNull(input.getSourceTitle()));
-            claim.setClaimText(cleanClaimText(input.getClaimText()));
-            claim.setClaimCategory(blankToNull(input.getClaimCategory()));
-            claim.setConfidence(input.getConfidence());
-            claim.setModelVersion(blankToNull(input.getModelVersion()));
-            claim.setCreatedAt(LocalDateTime.now());
-
-            extractedVideoClaimRepo.save(claim);
-            saved++;
-        }
-
-        return saved;
     }
 
     public int importRawDsClaims(List<RawDsVideoClaimsReq> videos) {
