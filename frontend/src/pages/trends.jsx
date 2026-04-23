@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import "./trends.css";
-import.meta.env.VITE_API_URL
 
 // Maps genre names returned by the API to their SVG icon paths.
 // Genres without an icon yet will show no icon.
@@ -25,34 +24,22 @@ function formatNumber(n) {
   return String(n);
 }
 
-const MAX_BAR_HEIGHT = 110; //tallest bar height 
+// Returns a signed percentage string e.g. +70%, -55%, 0%
+function formatChange(change) {
+  const pct = Math.round(change * 100);
+  if (pct > 0) return `+${pct}%`;
+  if (pct < 0) return `${pct}%`;
+  return `0%`;
+}
 
-const tags = [
-  { label: "Valorant"       },
-  { label: "Minecraft"      },
-  { label: "Fortnite"       },
-  { label: "FIFA"           },
-  { label: "Lethal Company" },
-];
+const MAX_BAR_HEIGHT = 110; // tallest bar height
 
-// const PLACEHOLDER_GENRES = [
-//   { name: "Battle Royale",  views: 4800000, likes: 320000, comments: 41200, changePercent: 0.48 },
-//   { name: "Survival Craft", views: 3900000, likes: 260000, comments: 33800, changePercent: 0.92 },
-//   { name: "Sports Sim",     views: 2700000, likes: 154000, comments: 19400, changePercent: 0.57 },
-//   { name: "Horror",         views: 2100000, likes: 118000, comments: 15600, changePercent: 0.43 },
-//   { name: "Shooter",        views: 1850000, likes: 102000, comments: 13200, changePercent: 0.38 },
-//   { name: "Action",         views: 1600000, likes:  88000, comments: 11400, changePercent: 0.31 },
-//   { name: "Racing",         views: 9300000, likes:  71000, comments:  9200, changePercent: 0.24 },
-//   { name: "Party / Casual", views: 1100000, likes:  59000, comments:  7800, changePercent: 0.22 },
-//   { name: "Simulation",     views:  820000, likes:  43000, comments:  5600, changePercent: 0.15 },
-//   { name: "Puzzle",         views:  540000, likes:  27000, comments:  3400, changePercent: 0.09 },
-// ];
+const BASE = "https://165.232.136.214.sslip.io";
 
 export default function Trends() {
   const navigate = useNavigate();
-  const [activeTag, setActiveTag]           = useState("Valorant");
-  const [selectedBlock, setSelectedBlock]   = useState(null); // 'before' | 'after' | null
-  const [beforeGenre, setBeforeGenre]       = useState("Horror");
+  const [selectedBlock, setSelectedBlock] = useState("before"); // auto-highlight 'before' on load
+  const [beforeGenre, setBeforeGenre]               = useState("Horror");
   const [beforeDropdownOpen, setBeforeDropdownOpen] = useState(false);
   const beforeDropdownRef = useRef(null);
 
@@ -66,67 +53,40 @@ export default function Trends() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Raw genre data from the API
-  // Expected shape per item: { name, views, likes, comments, changePercent }
   const [genres, setGenres]       = useState([]);
-  const [predicted, setPredicted] = useState([]); // GET /api/genres/predicted
-  const [reco, setReco]           = useState(null); // GET /api/genres/recommendation
+  const [predicted, setPredicted] = useState([]);
+  const [reco, setReco]           = useState(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
 
-
   useEffect(() => {
-  const BASE = "https://165.232.136.214.sslip.io";
-  // Genres is required
-  fetch(`${BASE}/api/genres`, { 
-    headers: { "ngrok-skip-browser-warning": "true" } // to suppress ngrok's browser warning page
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error(`Genres error: ${res.status}`);
-      return res.json();
+    fetch(`${BASE}/api/genres`, {
+      headers: { "ngrok-skip-browser-warning": "true" },
     })
-    .then((genresData) => {
-      setGenres(genresData);
-    })
-    .catch((err) => {
-      setError(err.message);
-    })
-    .finally(() => {
-      setLoading(false);
-    });
+      .then((res) => {
+        if (!res.ok) throw new Error(`Genres error: ${res.status}`);
+        return res.json();
+      })
+      .then((genresData) => setGenres(genresData))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
 
-  // Optional: don't crash if endpoint doesn't exist yet
-  fetch(`${BASE}/api/genres/predicted`, { 
-    headers: { "ngrok-skip-browser-warning": "true" } // to suppress ngrok's browser warning page
-  })
-    .then((res) => {
-      if (!res.ok) return null;
-      return res.json();
+    fetch(`${BASE}/api/genres/predicted`, {
+      headers: { "ngrok-skip-browser-warning": "true" },
     })
-    .then((data) => {
-      if (data) setPredicted(data);
-    })
-    .catch(() => {
-      console.warn("Predicted endpoint not available yet");
-    });
+      .then((res) => { if (!res.ok) return null; return res.json(); })
+      .then((data) => { if (data) setPredicted(data); })
+      .catch(() => console.warn("Predicted endpoint not available yet"));
 
-  // Optional: don't crash if endpoint doesn't exist yet
-  fetch(`${BASE}/api/genres/recommendation`, { 
-    headers: { "ngrok-skip-browser-warning": "true" } // to suppress ngrok's browser warning page
-  })
-    .then((res) => {
-      if (!res.ok) return null;
-      return res.json();
+    fetch(`${BASE}/api/genres/recommendation`, {
+      headers: { "ngrok-skip-browser-warning": "true" },
     })
-    .then((data) => {
-      if (data) setReco(data);
-    })
-    .catch(() => {
-      console.warn("Recommendation endpoint not available yet");
-    });
-}, []);
+      .then((res) => { if (!res.ok) return null; return res.json(); })
+      .then((data) => { if (data) setReco(data); })
+      .catch(() => console.warn("Recommendation endpoint not available yet"));
+  }, []);
 
-  // Derive percentages relative to the genre with the most views
+  // All genres with derived display fields — no slice, show every genre
   const maxViews = genres.length ? Math.max(...genres.map((g) => g.views)) : 1;
   const genreData = genres
     .map((g) => {
@@ -136,44 +96,41 @@ export default function Trends() {
         changePercent: change,
         percent: Math.round((g.views / maxViews) * 100),
         icon: GENRE_ICONS[g.name] ?? null,
-        changeDisplay: `+${Math.round(change * 100)}%`,
+        changeDisplay: formatChange(change),
       };
     })
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 5);
+    .sort((a, b) => b.views - a.views);
 
   const beforeGenreData = genres.find((g) => g.name === beforeGenre) ?? null;
-  const afterGenreData  = genreData[0] ?? null; // top trending genre
+  const afterGenreData  = genreData[0] ?? null; // top trending genre by views
 
-  // Top 2 predicted genres for the "next month peak" label — from GET /api/genres/predicted
-  // Falls back to deriving from genreData while the endpoint is loading
-  const topByChange = predicted.length
-    ? [...predicted]
-        .sort((a, b) => b.predictedGrowthPercent - a.predictedGrowthPercent)
-        .slice(0, 2)
-        .map((p) => ({ ...p, name: p.name, changePercent: p.predictedGrowthPercent }))
-    : [...genreData].sort((a, b) => b.changePercent - a.changePercent).slice(0, 2);
+  // Top 2 predicted genres for "next month peak"
+const topByChange = predicted.length
+  ? [...predicted]
+      .sort((a, b) => b.predictedViews - a.predictedViews)
+      .slice(0, 2)
+      .map((p) => ({ ...p, changePercent: p.predictedGrowthPercent }))
+  : [...genreData].sort((a, b) => b.views - a.views).slice(0, 2);
 
-  // Growth diff shown in the recommendation card — from GET /api/genres/recommendation
+  // Growth diff for recommendation card
   const growthDiff = reco
     ? reco.predictedGrowth
     : (() => {
-        const topChangeVal = topByChange[0] ? topByChange[0].changePercent : 0;
+        const topChangeVal    = topByChange[0] ? topByChange[0].changePercent : 0;
         const beforeChangeVal = beforeGenreData ? Number(beforeGenreData.changePercent) || 0 : 0;
         return Math.round((topChangeVal - beforeChangeVal) * 100);
       })();
 
-  // Viewership uplift from switching before → after genre
+  // Viewership uplift from switching before → after
   const beforeViews = beforeGenreData?.views || 0;
   const afterViews  = afterGenreData?.views  || 0;
   const viewsUplift = beforeViews > 0
     ? Math.round(((afterViews - beforeViews) / beforeViews) * 100)
     : 0;
 
-  // Bar chart heights — use GET /api/genres/predicted when available
   const barSource = predicted.length
-    ? [...predicted].sort((a, b) => b.predictedGrowthPercent - a.predictedGrowthPercent).slice(0, 5)
-    : genreData;
+  ? [...predicted].sort((a, b) => b.predictedViews - a.predictedViews).slice(0, 5)
+  : [...genreData].sort((a, b) => b.views - a.views).slice(0, 5);
 
   const maxBarVal = barSource.length
     ? Math.max(...barSource.map((g) => (predicted.length ? g.predictedViews || 1 : g.changePercent)), 1)
@@ -181,17 +138,19 @@ export default function Trends() {
 
   const barData = barSource.map((g) => ({
     label: g.name.split(" ")[0],
-    height: Math.round(((predicted.length ? g.predictedViews || 0 : g.changePercent) / maxBarVal) * MAX_BAR_HEIGHT),
+    height: Math.round(
+      ((predicted.length ? g.predictedViews || 0 : g.changePercent) / maxBarVal) * MAX_BAR_HEIGHT
+    ),
   }));
 
-  // Stats shown at the bottom of the middle card — reflect the active block's genre
+  // Stats for selected block
   const activeGenreData =
     selectedBlock === "before" ? beforeGenreData :
     selectedBlock === "after"  ? afterGenreData  :
     null;
 
-  const statViews    = activeGenreData ? formatNumber(activeGenreData.views)    : "—";
-  const statComments = activeGenreData ? formatNumber(activeGenreData.comments) : "—";
+  const statViews     = activeGenreData ? formatNumber(activeGenreData.views)    : "—";
+  const statComments  = activeGenreData ? formatNumber(activeGenreData.comments) : "—";
   const statLikeRatio = activeGenreData && activeGenreData.views
     ? ((activeGenreData.likes / activeGenreData.views) * 100).toFixed(1) + "%"
     : "—";
@@ -203,33 +162,30 @@ export default function Trends() {
   ];
 
   return (
-    <div className="trends-page">
-      {/* Header */}
-      <div className="trends-header">
-        <img src="/icons/trends/creatorXP.svg" alt="CreatorXP" className="trends-brand-logo" />
+    <div className="claims-page">
+      <header className="claims-header">
+        <NavLink to="/" className="main__brand">CreatorXP</NavLink>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-            <nav className="main__nav">
-              <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
-              <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
-              <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>Home</NavLink>
-              <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
-            </nav>
-            <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
-          </div>
-      </div>
+          <nav className="main__nav">
+            <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
+            <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+          </nav>
+          <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
+        </div>
+      </header>
+
 
       <h1 className="trends-title">Trends · gaming genres</h1>
 
-      {/* Three column layout */}
       <div className="trends-grid">
-        {/* Top Trending Genres */}
+        {/* ── Left: Top Trending Genres ── */}
         <div className="trends-card trends-card--left">
           <div className="trends-card-header">
             <img src="/icons/trends/topTrendingGenres.svg" alt="" className="trends-icon-sm" />
             <span className="trends-card-header-text">TOP TRENDING GENRES (30D)</span>
           </div>
 
-          {/* Genre rows */}
           {loading && <div className="trends-status-text">Loading genres…</div>}
           {error   && <div className="trends-status-text trends-status-text--error">Failed to load: {error}</div>}
 
@@ -245,7 +201,6 @@ export default function Trends() {
                     <span className="trends-genre-badge">{g.changeDisplay}</span>
                   </div>
                   <div className="trends-bar-track">
-                    {/* width is dynamic — kept as inline style */}
                     <div className="trends-bar-fill" style={{ width: `${g.percent}%` }}>
                       <span className="trends-bar-fill-text">{g.percent}%</span>
                     </div>
@@ -255,30 +210,17 @@ export default function Trends() {
             </div>
           )}
 
-          {/* Game tags */}
-          <div className="trends-tags">
-            {tags.map((t) => (
-              <button
-                key={t.label}
-                onClick={() => setActiveTag(t.label)}
-                className={`trends-tag-btn${activeTag === t.label ? " trends-tag-btn--active" : ""}`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Footer note */}
-          <div className="trends-footer-note">
-            <img src="/icons/trends/bellIcon.svg" alt="" className="trends-icon-sm" />
-            <div>
-              <div className="trends-footer-note-text">battle royale + survival are peaking</div>
-              <div className="trends-footer-note-text">— recommended switch</div>
+        <div className="trends-footer-note">
+          <img src="/icons/trends/bellIcon.svg" alt="" className="trends-icon-sm" />
+          <div>
+            <div className="trends-footer-note-text">
+              {genreData[0]?.name?.toLowerCase() ?? "—"} + {genreData[1]?.name?.toLowerCase() ?? "—"} are peaking
             </div>
+            <div className="trends-footer-note-text">— recommended switch</div>
           </div>
         </div>
-
-        {/* Performance vs Trend Shift */}
+        </div>
+        {/* ── Mid: Performance vs Trend Shift ── */}
         <div className="trends-card trends-card--mid">
           <div className="trends-section-label">PERFORMANCE VS TREND SHIFT</div>
 
@@ -312,7 +254,10 @@ export default function Trends() {
               <span className="trends-value--orange">{beforeGenreData ? formatNumber(beforeGenreData.views) : "—"}</span>
               <span className="trends-value-unit">views</span>
             </div>
-            <div className="trends-engagement-down">{beforeGenreData ? `+${Math.round((Number(beforeGenreData.changePercent) || 0) * 100)}% trend` : ""}</div>
+            {/**/}
+            <div className="trends-engagement-down">
+              {beforeGenreData ? `${formatChange(Number(beforeGenreData.changePercent) || 0)} trend` : ""}
+            </div>
           </div>
 
           {/* After card */}
@@ -327,10 +272,12 @@ export default function Trends() {
               <span className="trends-value--purple">{afterGenreData ? formatNumber(afterGenreData.views) : "—"}</span>
               <span className="trends-value-unit">views</span>
             </div>
-            <div className="trends-engagement-up">{afterGenreData ? `↑ +${Math.round((afterGenreData.changePercent || 0) * 100)}%` : ""}</div>
+            <div className="trends-engagement-up">
+              {afterGenreData ? `↑ ${formatChange(afterGenreData.changePercent || 0)}` : ""}
+            </div>
           </div>
 
-          {/* Stats rows — driven by live genre data */}
+          {/* Stats rows */}
           <div className="trends-stats-list">
             {statRows.map((row, i) => (
               <div key={i}>
@@ -352,33 +299,29 @@ export default function Trends() {
               </div>
             ))}
           </div>
-
-          {/* Trend adoption payout */}
-          <div className="trends-payout-card">
-            <img src="/icons/trends/checkmark.svg" alt="" className="trends-icon-md" />
-            <div>
-              <div className="trends-payout-text">trend adoption payout:</div>
-              <div className="trends-payout-text">{viewsUplift >= 0 ? `+${viewsUplift}%` : `${viewsUplift}%`} estimated viewership</div>
+            {/* Trend adoption payout */}
+            <div className="trends-payout-card">
+              <img src="/icons/trends/checkmark.svg" alt="" className="trends-icon-md" />
+              <div>
+                <div className="trends-payout-text">{afterGenreData?.name ?? "trend"} adoption payout:</div>
+                <div className="trends-payout-text">{viewsUplift >= 0 ? `+${viewsUplift}%` : `${viewsUplift}%`} estimated viewership</div>
+              </div>
             </div>
-          </div>
         </div>
 
-        {/* Future Trends (Predicted) */}
+        {/* ── Right: Future Trends (Predicted) ── */}
         <div className="trends-card trends-card--right">
           <div className="trends-section-label">FUTURE TRENDS (PREDICTED)</div>
 
-          {/* Bar chart */}
           <div className="trends-bar-chart">
             {barData.map((b) => (
               <div key={b.label} className="trends-bar-col">
-                {/* height is dynamic — kept as inline style */}
                 <div className="trends-bar-rect" style={{ height: b.height }} />
                 <span className="trends-bar-col-label">{b.label}</span>
               </div>
             ))}
           </div>
 
-          {/* from GET /api/genres/recommendation when available */}
           <div className="trends-next-peak">
             <img src="/icons/trends/nextMonthPeak.svg" alt="" className="trends-icon-md" />
             <div>
@@ -399,7 +342,6 @@ export default function Trends() {
             </div>
           </div>
 
-          {/* Personalized recommendation — from GET /api/genres/recommendation when available */}
           <div className="trends-reco-card">
             <div className="trends-reco-header">
               <img src="/icons/trends/gamePad.svg" alt="" className="trends-icon-md" />

@@ -85,22 +85,6 @@ export default function Claims() {
       .finally(() => setLoadingRevenue(false));
   }, [fromGenre, topGenre]);
 
-  const handleClaim = () => {
-    if (!topGenre) return;
-    setClaiming(true);
-    fetch(`${BASE}/api/claims/claim?genre=${encodeURIComponent(topGenre)}`, {
-      method: "POST",
-    })
-      .then((res) => {
-        if (res.status === 500) throw new Error("No unclaimed balance available.");
-        if (!res.ok) throw new Error(`Claim error: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => setTopRevenue(data))
-      .catch((err) => alert(err.message))
-      .finally(() => setClaiming(false));
-  };
-
   const fmt = (n) => {
     if (n === undefined || n === null) return "—";
     return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -124,52 +108,75 @@ export default function Claims() {
     ? (topRevenue.totalEstimatedRevenue / fromRevenue.totalEstimatedRevenue).toFixed(1)
     : breakdown?.performanceMultiplier ?? "—";
 
-  const engagementRisk = topGenreData && topGenreData.views > 0
+  const fromGenreData = genres.find(g => g.name === fromGenre) ?? null;
+
+  const engagementRisk = fromGenreData && fromGenreData.views > 0
     ? (() => {
-        const ratio = (topGenreData.likes / topGenreData.views) * 100;
+        const ratio = (fromGenreData.likes / fromGenreData.views) * 100;
         if (ratio >= 5) return { label: "Low Risk", color: "#62DF9C", detail: `${ratio.toFixed(1)}% like ratio` };
         if (ratio >= 2) return { label: "Medium Risk", color: "#F5B17B", detail: `${ratio.toFixed(1)}% like ratio` };
         return { label: "High Risk", color: "#FF7B7B", detail: `${ratio.toFixed(1)}% like ratio` };
       })()
     : null;
 
+  const viewsIncrease = breakdown && fromGenreData && topGenreData && fromGenreData.views > 0
+    ? Math.round(((topGenreData.views - fromGenreData.views) / fromGenreData.views) * 100)
+    : 0;
+    
+
   const breakdownRows = breakdown
     ? [
         {
-          label: `higher CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`,
-          value: `+${breakdown.cpmIncrease}%`,
-          percent: Math.min(breakdown.cpmIncrease, 100),
+            label: breakdown.cpmIncrease >= 0
+            ? `higher CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`
+            : `lower CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`,
+            value: breakdown.cpmIncrease >= 0
+            ? `+${breakdown.cpmIncrease}%`
+            : `${breakdown.cpmIncrease}%`,
+          type: breakdown.cpmIncrease >= 0 ? "positive" : "neutral",
+          percent: Math.min(Math.max(breakdown.cpmIncrease, 0), 100),
           icon: "↗️",
-          type: "positive",
         },
         {
-          label: "engagement rate",
+          label: (() => {
+            const fromEng = fromGenreData?.views > 0
+              ? (fromGenreData.likes / fromGenreData.views * 100).toFixed(1) + "%"
+              : "no data";
+            const toEng = topGenreData?.views > 0
+              ? (topGenreData.likes / topGenreData.views * 100).toFixed(1) + "%"
+              : "no data";
+            return `engagement rate  (${fromEng} → ${toEng})`;
+          })(),
           value: breakdown.engagementRateDiff > 0
             ? `+${breakdown.engagementRateDiff}%`
             : `${breakdown.engagementRateDiff}%`,
           percent: Math.min(Math.abs(breakdown.engagementRateDiff), 100),
           icon: "📈",
-          type: breakdown.engagementRateDiff > 0 ? "positive" : "neutral",
+          type: breakdown.engagementRateDiff > 0 ? "positive" : "negative",          
         },
         {
-          label: "avg monthly views from trend",
-          value: fmtViews(breakdown.avgMonthlyViews),
-          percent: 0,
+          label: (() => {
+            const from = fromGenreData?.views > 0 ? fmtViews(fromGenreData.views) : "no data";
+            const to = topGenreData?.views > 0 ? fmtViews(topGenreData.views) : "no data";
+            return `avg monthly views  (${from} → ${to})`;
+          })(),
+          value: viewsIncrease > 999 ? "+999%+" : viewsIncrease >= 0 ? `+${viewsIncrease}%` : `${viewsIncrease}%`,
+          percent: Math.min(Math.max(viewsIncrease, 0), 100),
           icon: "👥",
-          type: "neutral",
+          type: viewsIncrease >= 0 ? "positive" : "neutral",
         },
       ]
     : [];
-
+ 
+    console.log(fromGenreData);
   return (
     <div className="claims-page">
       <header className="claims-header">
-        <img src="/icons/landing/creatorXP.svg" alt="CreatorXP" className="claims-brand-logo" />
+        <NavLink to="/" className="main__brand">CreatorXP</NavLink>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           <nav className="main__nav">
             <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
             <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
-            <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>Home</NavLink>
             <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
           </nav>
           <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
@@ -184,7 +191,7 @@ export default function Claims() {
         <section className="claims-card claims-card--left">
           <div className="claims-section-label">
             <img src="/icons/claims/coin.svg" alt="" className="claims-icon claims-icon--section" />
-            <span>ESTIMATED ADDITIONAL REVENUE (TREND)</span>
+            <span>ESTIMATED TOTAL REVENUE (POST-ADOPTION)</span>
           </div>
 
           {loadingRevenue && <div className="claims-status-text">Loading revenue…</div>}
@@ -199,19 +206,27 @@ export default function Claims() {
                 <span>from {topRevenue.periodStart} - {topRevenue.periodEnd} (trend-driven videos)</span>
               </div>
 
-              <div className="claims-row">
+<div className="claims-row">
                 <div className="trends-genre-dropdown-wrap" ref={fromDropdownRef}>
-                  <div
-                    className="trends-sub-card-label trends-sub-card-label--dropdown"
+                  <button
+                    type="button"
+                    className={`claims-genre-trigger${fromDropdownOpen ? " claims-genre-trigger--open" : ""}`}
                     onClick={(e) => { e.stopPropagation(); setFromDropdownOpen((o) => !o); }}
+                    aria-haspopup="listbox"
+                    aria-expanded={fromDropdownOpen}
                   >
-                    {fromGenre.toLowerCase()} <span className="trends-dropdown-caret">{fromDropdownOpen ? "▴" : "▾"}</span>
-                  </div>
+                    <span className="claims-genre-trigger__label">your genre</span>
+                    <span className="claims-genre-trigger__value">{fromGenre}</span>
+                    <span className="claims-genre-trigger__caret">{fromDropdownOpen ? "▴" : "▾"}</span>
+                  </button>
+
                   {fromDropdownOpen && (
-                    <ul className="trends-genre-dropdown">
+                    <ul className="trends-genre-dropdown claims-genre-dropdown" role="listbox">
                       {genres.map((g) => (
                         <li
                           key={g.name}
+                          role="option"
+                          aria-selected={g.name === fromGenre}
                           className={`trends-genre-dropdown-item${g.name === fromGenre ? " trends-genre-dropdown-item--active" : ""}`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -225,36 +240,28 @@ export default function Claims() {
                     </ul>
                   )}
                 </div>
-                <span>{fmt(baseRevenue)}</span>
-              </div>
-              <div className="claims-divider" />
-
-              <div className="claims-row">
-                <span>trend boost</span>
-                <span className="claims-positive">+{fmt(trendBoost)}</span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                  <span style={{ fontSize: "12px", color: "#8E93AB", marginBottom: "2px" }}>current revenue</span>
+                  <span>{fmt(baseRevenue)}</span>
+                </div>
               </div>
               <div className="claims-divider" />
 
               <div className="claims-balance-card">
-                <div className="claims-balance-label">unclaimed balance</div>
+                <div className="claims-balance-label">trend boost</div>
                 <div className="claims-balance-value-row">
-                  <span className="claims-balance-value">{fmt(unclaimedBalance)}</span>
+                  <span className="claims-balance-value claims-positive">+{fmt(trendBoost)}</span>
                   <span className="claims-balance-status">pending</span>
                 </div>
               </div>
             </>
           )}
-
-          <button className="claims-cta-btn" type="button" onClick={handleClaim} disabled={claiming}>
-            <span className="claims-cta-icon">$</span>
-            {claiming ? "Claiming…" : "Claim earnings"}
-          </button>
         </section>
 
         <section className="claims-card claims-card--right">
           <div className="claims-section-label">
             <img src="/icons/claims/pie.svg" alt="" className="claims-icon claims-icon--section" />
-            <span>BREAKDOWN: WHY TREND WORKS</span>
+              <span>BREAKDOWN: WHY TRANSITIONING TO {topGenre?.toUpperCase() ?? "TREND"} WORKS</span>
           </div>
 
           {loadingBreakdown && <div className="claims-status-text">Loading breakdown…</div>}
@@ -267,20 +274,22 @@ export default function Claims() {
                   <div key={row.label}>
                     <div className="claims-row claims-row--spaced">
                       <span>{row.icon} {row.label}</span>
-                      <span className={row.type === "positive" ? "claims-positive" : "claims-neutral"}>
+                      <span className={row.type === "positive" ? "claims-positive" : row.type === "negative" ? "claims-negative" : "claims-neutral"}>
                         {row.value}
                       </span>
                     </div>
                     {row.percent > 0 && (
                       <div className="claims-progress-track">
-                        <div className="claims-progress-fill" style={{ width: `${row.percent}%` }} />
+                        <div
+                          className={`claims-progress-fill${row.type === "negative" ? " claims-progress-fill--negative" : ""}`}
+                          style={{ width: `${row.percent}%` }}
+                        />
                       </div>
                     )}
                     <div className="claims-divider" />
                   </div>
                 ))}
 
-                {/* Engagement risk — inserted after engagement rate row */}
                 {engagementRisk && (
                   <div>
                     <div className="claims-row claims-row--spaced">
@@ -290,46 +299,36 @@ export default function Claims() {
                       </span>
                     </div>
                     <div style={{ fontSize: "12px", color: "#8E93AB", marginBottom: "8px" }}>
-                      {engagementRisk.detail} on {topGenre?.toLowerCase()}
+                      {engagementRisk.detail} on {fromGenre?.toLowerCase()}
                     </div>
                     <div className="claims-divider" />
                   </div>
                 )}
               </div>
 
-              <p className="claims-guarantee">
-                <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--inline claims-guarantee-icon" />
-                <strong>performance guarantee:</strong> trend adaptation yields
-                <br />
-                <span className="claims-muted-strong">
-                  avg. {profitMultiplier}x profit (based on your history)
-                </span>
-              </p>
-
-              {breakdown?.message && (
-                <p className="claims-muted-strong" style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>
-                  {breakdown.message}
-                </p>
-              )}
+              <div className="claims-last-paid-card">
+                <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--file" />
+                <div>
+                  <div className="claims-last-paid-label">performance guarantee</div>
+                  <div className="claims-last-paid-value">
+                    trend adaptation yields avg. {profitMultiplier}x profit
+                  </div>
+                  {breakdown?.message && (
+                    <div style={{ fontSize: "13px", color: "#b2b9d5", marginTop: "4px" }}>
+                      {breakdown.message}
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           )}
-
-          <div className="claims-last-paid-card">
-            <img src="/icons/claims/file.svg" alt="" className="claims-icon claims-icon--file" />
-            <div>
-              <div className="claims-last-paid-label">last claim paid</div>
-              <div className="claims-last-paid-value">
-                {topRevenue?.lastClaimDate ?? "—"} &middot; {fmt(topRevenue?.lastClaimAmount)}
-              </div>
-            </div>
-          </div>
         </section>
       </div>
 
       <footer className="claims-footer">
         <div className="claims-footer-note">
           <img src="/icons/claims/clock.svg" alt="" className="claims-icon claims-icon--footer" />
-          <span>funds clear within 48h after claim</span>
+          <span></span>
         </div>
         <div className="claims-footer-note">
           <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--footer" />

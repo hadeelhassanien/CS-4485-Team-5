@@ -5,19 +5,15 @@ export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div className="main">
-      <header className="main__header">
-        <div className="main__brand">CreatorXP</div>
-
+    <div className="claims-page">
+      <header className="claims-header">
+        <NavLink to="/" className="main__brand">CreatorXP</NavLink>
         <nav className="main__nav">
           <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>
             Trends
           </NavLink>
           <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>
             Narratives
-          </NavLink>
-          <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>
-            Home
           </NavLink>
           <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>
             Claims

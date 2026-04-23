@@ -50,15 +50,15 @@ public class RevenueService {
         }
 
         return new RevenueEstimateDTO(
-                genre,
-                periodStart,
-                periodEnd,
-                round(totalRevenue),
-                round(baseRevenue),
-                round(trendBoost),
-                round(unclaimedBalance),
-                lastClaimDate,
-                lastClaimAmount
+            genre,
+            periodStart,
+            periodEnd,
+            round(baseRevenue),          // baseRevenue
+            round(trendBoost),           // trendBoost
+            round(totalRevenue),         // totalEstimatedRevenue
+            round(unclaimedBalance),
+            lastClaimDate,
+            lastClaimAmount
         );
     }
 

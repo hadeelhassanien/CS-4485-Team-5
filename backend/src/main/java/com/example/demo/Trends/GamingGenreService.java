@@ -207,9 +207,9 @@ public class GamingGenreService {
                     result.put("predictedGrowthPercent", Math.round(genre.getChangePercent() * 10000.0) / 100.0);
                     return result;
                 })
-                .sorted((a, b) -> Double.compare(
-                    (double) b.get("predictedGrowthPercent"),
-                    (double) a.get("predictedGrowthPercent")
+                .sorted((a, b) -> Long.compare(
+                    (long) b.get("predictedViews"),
+                    (long) a.get("predictedViews")
                 ))
                 .limit(5)
                 .toList();
