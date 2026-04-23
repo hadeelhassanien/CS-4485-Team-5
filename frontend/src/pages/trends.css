@@ -12,6 +12,26 @@
   box-sizing: border-box;
 }
 
+.trends-sub-card-label--dropdown {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 10px;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1.5px solid rgba(139, 92, 246, 0.55);
+  border-radius: 8px;
+  user-select: none;
+  font-family: inherit;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.trends-sub-card-label--dropdown:hover {
+  background: rgba(139, 92, 246, 0.22);
+  border-color: rgba(139, 92, 246, 0.8);
+  color: #D4C8FF;
+}
+
 /* Header */
 .trends-header {
   display: flex;
@@ -257,9 +277,6 @@
   user-select: none;
 }
 
-.trends-sub-card-label--dropdown:hover {
-  color: #D4C8FF;
-}
 
 .trends-dropdown-caret {
   font-size: 20px;

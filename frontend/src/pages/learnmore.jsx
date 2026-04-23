@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import "./learnmore.css";
 
 export default function Learnmore() {
@@ -6,12 +6,18 @@ export default function Learnmore() {
 
   return (
     <div className="learnmore-page">
-  <header className="learnmore-header">
-    <img src="/icons/landing/creatorXP.svg" alt="CreatorXP" className="learnmore-brand-logo" />
-    <img src="/icons/claims/houseIcon.svg" alt="Home" className="learnmore-home-btn" onClick={() => navigate("/")} />
-  </header>
-  {/* rest of content */}
-    <div className="learnmore-page">
+      <header className="narratives-header">
+        <NavLink to="/" className="main__brand">CreatorXP</NavLink>
+        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+          <nav className="main__nav">
+            <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
+            <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+          </nav>
+          <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
+        </div>
+      </header>
+
       <div className="learnmore-intro">
         <p className="learnmore-eyebrow">About CreatorXP</p>
         <h1 className="learnmore-title">Built for gaming creators who want to grow smarter.</h1>
@@ -63,6 +69,5 @@ export default function Learnmore() {
         </div>
       </div>
     </div>
-  </div>
   );
 }
