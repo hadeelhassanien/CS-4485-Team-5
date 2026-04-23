@@ -102,13 +102,13 @@ export default function Claims() {
   const trendBoost = (topRevenue && fromRevenue)
     ? Math.max(0, topRevenue.totalEstimatedRevenue - fromRevenue.totalEstimatedRevenue)
     : null;
-  const unclaimedBalance = topRevenue?.unclaimedBalance ?? null;
 
   const profitMultiplier = (topRevenue && fromRevenue && fromRevenue.totalEstimatedRevenue > 0)
     ? (topRevenue.totalEstimatedRevenue / fromRevenue.totalEstimatedRevenue).toFixed(1)
     : breakdown?.performanceMultiplier ?? "—";
 
-  const fromGenreData = genres.find(g => g.name === fromGenre) ?? null;
+  const fromGenreData = genres.find((g) => g.name === fromGenre) ?? null;
+  const toGenreLabel = breakdown?.toGenre ?? topGenre ?? "trend";
 
   const engagementRisk = fromGenreData && fromGenreData.views > 0
     ? (() => {
@@ -122,15 +122,14 @@ export default function Claims() {
   const viewsIncrease = breakdown && fromGenreData && topGenreData && fromGenreData.views > 0
     ? Math.round(((topGenreData.views - fromGenreData.views) / fromGenreData.views) * 100)
     : 0;
-    
 
   const breakdownRows = breakdown
     ? [
         {
-            label: breakdown.cpmIncrease >= 0
-            ? `higher CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`
-            : `lower CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`,
-            value: breakdown.cpmIncrease >= 0
+          label: breakdown.cpmIncrease >= 0
+            ? `higher CPM on ${toGenreLabel.toLowerCase()}`
+            : `lower CPM on ${toGenreLabel.toLowerCase()}`,
+          value: breakdown.cpmIncrease >= 0
             ? `+${breakdown.cpmIncrease}%`
             : `${breakdown.cpmIncrease}%`,
           type: breakdown.cpmIncrease >= 0 ? "positive" : "neutral",
@@ -140,10 +139,10 @@ export default function Claims() {
         {
           label: (() => {
             const fromEng = fromGenreData?.views > 0
-              ? (fromGenreData.likes / fromGenreData.views * 100).toFixed(1) + "%"
+              ? `${((fromGenreData.likes / fromGenreData.views) * 100).toFixed(1)}%`
               : "no data";
             const toEng = topGenreData?.views > 0
-              ? (topGenreData.likes / topGenreData.views * 100).toFixed(1) + "%"
+              ? `${((topGenreData.likes / topGenreData.views) * 100).toFixed(1)}%`
               : "no data";
             return `engagement rate  (${fromEng} → ${toEng})`;
           })(),
@@ -152,7 +151,7 @@ export default function Claims() {
             : `${breakdown.engagementRateDiff}%`,
           percent: Math.min(Math.abs(breakdown.engagementRateDiff), 100),
           icon: "📈",
-          type: breakdown.engagementRateDiff > 0 ? "positive" : "negative",          
+          type: breakdown.engagementRateDiff > 0 ? "positive" : "negative",
         },
         {
           label: (() => {
@@ -167,8 +166,9 @@ export default function Claims() {
         },
       ]
     : [];
- 
-    console.log(fromGenreData);
+
+  console.log(fromGenreData);
+
   return (
     <div className="claims-page">
       <header className="claims-header">
@@ -206,12 +206,15 @@ export default function Claims() {
                 <span>from {topRevenue.periodStart} - {topRevenue.periodEnd} (trend-driven videos)</span>
               </div>
 
-<div className="claims-row">
+              <div className="claims-row">
                 <div className="trends-genre-dropdown-wrap" ref={fromDropdownRef}>
                   <button
                     type="button"
                     className={`claims-genre-trigger${fromDropdownOpen ? " claims-genre-trigger--open" : ""}`}
-                    onClick={(e) => { e.stopPropagation(); setFromDropdownOpen((o) => !o); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFromDropdownOpen((o) => !o);
+                    }}
                     aria-haspopup="listbox"
                     aria-expanded={fromDropdownOpen}
                   >
@@ -261,7 +264,7 @@ export default function Claims() {
         <section className="claims-card claims-card--right">
           <div className="claims-section-label">
             <img src="/icons/claims/pie.svg" alt="" className="claims-icon claims-icon--section" />
-              <span>BREAKDOWN: WHY TRANSITIONING TO {topGenre?.toUpperCase() ?? "TREND"} WORKS</span>
+            <span>BREAKDOWN: WHY TRANSITIONING TO {topGenre?.toUpperCase() ?? "TREND"} WORKS</span>
           </div>
 
           {loadingBreakdown && <div className="claims-status-text">Loading breakdown…</div>}
@@ -332,7 +335,7 @@ export default function Claims() {
         </div>
         <div className="claims-footer-note">
           <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--footer" />
-          <span>trend-proof earnings</span>
+          <span>genre-optimized earnings</span>
         </div>
       </footer>
     </div>
