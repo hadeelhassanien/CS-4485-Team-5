@@ -17,10 +17,22 @@ public class NarrativeService {
     private static final int MAX_TRENDS = 2;
     private static final int MAX_RECOMMENDATIONS = 3;
 
-    public List<Narrative> getTopNarratives() {
-        List<Narrative> all = loadNarratives();
+    private final NarrativeClient narrativeClient;
 
-        // Separate into two lists
+    public NarrativeService(NarrativeClient narrativeClient) {
+        this.narrativeClient = narrativeClient;
+    }
+
+    public List<Narrative> getTopNarratives() {
+        // Try FastAPI first
+        List<Narrative> all = narrativeClient.fetchNarratives();
+
+        // Fall back to local JSON if FastAPI is down
+        if (all == null || all.isEmpty()) {
+            System.out.println("Falling back to local JSON");
+            all = loadNarratives();
+        }
+
         List<Narrative> trends = all.stream()
                 .filter(n -> "trend".equalsIgnoreCase(n.getType()))
                 .collect(Collectors.toList());
@@ -29,18 +41,14 @@ public class NarrativeService {
                 .filter(n -> "recommendation".equalsIgnoreCase(n.getType()))
                 .collect(Collectors.toList());
 
-        // Shuffle both lists randomly each time
         Collections.shuffle(trends);
         Collections.shuffle(recommendations);
 
-        // Take top N after shuffle
         List<Narrative> result = new ArrayList<>();
         result.addAll(trends.stream().limit(MAX_TRENDS).toList());
         result.addAll(recommendations.stream().limit(MAX_RECOMMENDATIONS).toList());
 
-        // Shuffle the final result so trends and recommendations are mixed
         Collections.shuffle(result);
-
         return result;
     }
 
@@ -50,25 +58,18 @@ public class NarrativeService {
 
         try {
             InputStream is = getClass().getResourceAsStream("/final_narratives.json");
-
             if (is == null) {
-                System.out.println("FILE NOT FOUND");
+                System.out.println("Local JSON not found");
                 return narratives;
             }
-
-            System.out.println("FILE FOUND");
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             String line;
             while ((line = reader.readLine()) != null) {
                 if (!line.trim().isEmpty()) {
-                    Narrative narrative = mapper.readValue(line, Narrative.class);
-                    narratives.add(narrative);
+                    narratives.add(mapper.readValue(line, Narrative.class));
                 }
             }
-
-            System.out.println("Total narratives loaded: " + narratives.size());
-
         } catch (Exception e) {
             e.printStackTrace();
         }
