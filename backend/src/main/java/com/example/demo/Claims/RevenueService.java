@@ -5,8 +5,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.demo.Pipeline.RevenueModel;
+import com.example.demo.Pipeline.RevenueModelRepo;
 import java.time.format.DateTimeFormatter;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
@@ -14,14 +16,17 @@ public class RevenueService {
 
     private final GamingGenreRepository genreRepository;
     private final ClaimRepository claimRepository;
+    private final RevenueModelRepo revenueModelRepo;
 
-    public RevenueService(GamingGenreRepository genreRepository, ClaimRepository claimRepository) {
+    public RevenueService(
+            GamingGenreRepository genreRepository,
+            ClaimRepository claimRepository,
+            RevenueModelRepo revenueModelRepo
+    ) {
         this.genreRepository = genreRepository;
         this.claimRepository = claimRepository;
+        this.revenueModelRepo = revenueModelRepo;
     }
-
-    private static final double BASE_CPM  = 2.0;  
-    private static final double TREND_CPM = 3.5;  
 
     public RevenueEstimateDTO getRevenueEstimate(String genre) {
         LocalDate today = LocalDate.now();
@@ -31,21 +36,29 @@ public class RevenueService {
             throw new IllegalArgumentException("Genre not found: " + genre);
         }
 
-        YearMonth month =YearMonth.from(today);
-        String periodStart =month.atDay(1).format(DateTimeFormatter.ofPattern("MMM d"));
-        String periodEnd =month.atEndOfMonth().format(DateTimeFormatter.ofPattern("MMM d"));
+        RevenueModel profile = revenueModelRepo
+                .findFirstByGenreNameAndEffectiveDateLessThanEqualOrderByEffectiveDateDescCreatedAtDesc(genre, today)
+            .or(() -> revenueModelRepo.findFirstByGenreNameAndEffectiveDateLessThanEqualOrderByEffectiveDateDescCreatedAtDesc("__default__", today))
+                .orElseThrow(() -> new IllegalStateException(
+                        "No revenue model profile found for genre '" + genre + "'. Load the data science revenue profile first."
+                ));
 
-        double baseRevenue =(snapshot.getViews() / 1000.0) * BASE_CPM;
-        double trendBoost =(snapshot.getViews() / 1000.0) * (TREND_CPM - BASE_CPM);
-        double totalRevenue =baseRevenue + trendBoost;
-        double alreadyClaimed = claimRepository.sumClaimedAmountsByGenre(genre);
-        double unclaimedBalance= Math.max(0, totalRevenue - alreadyClaimed);
+        YearMonth month = YearMonth.from(today);
+        String periodStart = month.atDay(1).format(DateTimeFormatter.ofPattern("MMM d"));
+        String periodEnd = month.atEndOfMonth().format(DateTimeFormatter.ofPattern("MMM d"));
 
-        String lastClaimDate   = "N/A";
+        double monetizedViews = snapshot.getViews() / 1000.0;
+        double baseRevenue = monetizedViews * profile.getBaseCpm();
+        double totalEstimatedRevenue = baseRevenue * profile.getTrendMultiplier();
+        double trendBoost = totalEstimatedRevenue - baseRevenue;
+        double alreadyClaimed = claimRepository.sumAllClaimedAmounts();
+        double unclaimedBalance = Math.max(0, totalEstimatedRevenue - alreadyClaimed);
+
+        String lastClaimDate = "N/A";
         double lastClaimAmount = 0.0;
         var lastClaim = claimRepository.findMostRecentClaim();
         if (lastClaim.isPresent()) {
-            lastClaimDate   = lastClaim.get().getClaimDate().format(DateTimeFormatter.ofPattern("MMMM d, yyyy"));
+            lastClaimDate = lastClaim.get().getClaimDate().format(DateTimeFormatter.ofPattern("MMMM d, yyyy"));
             lastClaimAmount = lastClaim.get().getAmountClaimed();
         }
 
@@ -53,9 +66,9 @@ public class RevenueService {
                 genre,
                 periodStart,
                 periodEnd,
-                round(totalRevenue),
                 round(baseRevenue),
                 round(trendBoost),
+                round(totalEstimatedRevenue),
                 round(unclaimedBalance),
                 lastClaimDate,
                 lastClaimAmount
