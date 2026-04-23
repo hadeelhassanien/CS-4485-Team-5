@@ -1,60 +1,60 @@
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import "./narratives.css";
 
-const recentNarratives = [
-  "Introduce varied enemy behaviors, such as slow-moving groups, fast-moving targets, and unpredictable movements, to create dynamic combat situations. Use environmental elements like walls and platforms to enhance evasion options.",
-  "Enhance the loot drops system to ensure that Leon encounters more items scattered throughout the game world. Include a feature where he can gather more items than usual, encouraging exploration and interaction with the environment.",
-  "Create dynamic environments that offer diverse routes and pathways, forcing players to constantly switch between them. Use variable lighting and weather effects to simulate urgency and create a sense of danger.",
-  "Increase the frequency and intensity of encounters gradually, ensuring that enemies become more challenging as the game progresses. Introduce temporary debuffs or health reductions that build tension and engagement.",
-  "Expand the game's scope by adding new missions, side quests, and hidden areas. Increase the number of available tasks and opportunities for players to interact with the world.",
-];
-
-const narrativeGroups = [
-  {
-    title: "Party / casual",
-    icon: "/icons/narratives/Puzzle.svg",
-    claims: [
-      "The player has discovered a new ability to control brain routes in their game, which allows them to interact with objects and potentially influence gameplay mechanics.",
-      "The player is controlling characters and trying to steal items from each other while also battling against enemies within their own base.",
-      "The group is dealing with theft and returning items to their rightful owner.",
-    ],
-  },
-  {
-    title: "Survival craft",
-    icon: "/icons/narratives/Diamond.svg",
-    claims: [
-      "The player is upgrading their fishing rod and gathering resources to prepare for catching a legendary star fragment.",
-      "The player needs to complete four quests involving converting fire fish into fire, fighting various bosses, and collecting orbs to defeat a final boss.",
-      "The user has obtained a shiny fish in a video game and wants others to join in the multiplayer mode.",
-    ],
-  },
-  {
-    title: "Battle Royale",
-    icon: "/icons/narratives/Badge.svg",
-    claims: [
-      "The player explores a series of dungeons and upgrades their equipment to increase their mining efficiency, ultimately reaching a higher level where they gain access to powerful tools and earn significant amounts of gold.",
-      "The player successfully completes a high-speed race through a virtual world by utilizing powerful upgrades and quick reflexes to avoid obstacles and maximize their earnings.",
-      "The narrator discusses increasing their in-game score by purchasing rare brain rods at an accelerating rate.",
-    ],
-  },
-];
+const BASE = "https://165.232.136.214.sslip.io";
 
 export default function Narratives() {
   const navigate = useNavigate();
+  const [narratives, setNarratives] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch(`${BASE}/api/narratives`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Narratives error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (isMounted) {
+          setNarratives(Array.isArray(data) ? data : []);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err.message);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const trendNarratives = narratives.filter((item) => item?.type?.toLowerCase() === "trend");
+  const recommendations = narratives.filter((item) => item?.type?.toLowerCase() === "recommendation");
 
   return (
     <div className="narratives-page">
       <header className="narratives-header">
         <NavLink to="/" className="main__brand">CreatorXP</NavLink>
-          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-              <nav className="main__nav">
-                <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
-                <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
-                <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
-              </nav>
-              <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
-            </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+          <nav className="main__nav">
+            <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
+            <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+          </nav>
+          <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
+        </div>
       </header>
 
       <h1 className="narratives-title">
@@ -70,42 +70,49 @@ export default function Narratives() {
 
           <div className="narratives-divider" />
 
-          <div className="narratives-list">
-            {recentNarratives.map((item, index) => (
-              <article key={index} className="narratives-quote-card">
-                <img src="/icons/narratives/User.svg" alt="" className="narratives-quote-icon" />
-                <p className="narratives-quote-text">"{item}"</p>
-              </article>
-            ))}
-          </div>
+          {loading && <div className="narratives-status">Loading narratives...</div>}
+          {!loading && error && <div className="narratives-status narratives-status--error">Failed to load: {error}</div>}
+
+          {!loading && !error && (
+            <div className="narratives-list">
+              {trendNarratives.length === 0 && (
+                <div className="narratives-status">No trend narratives available.</div>
+              )}
+
+              {trendNarratives.map((item, index) => (
+                <article key={`${item.type}-${index}`} className="narratives-quote-card">
+                  <img src="/icons/narratives/User.svg" alt="" className="narratives-quote-icon" />
+                  <p className="narratives-quote-text">"{item.content}"</p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="narratives-card narratives-card--right">
           <div className="narratives-section-label">
             <img src="/icons/narratives/Book.svg" alt="" className="narratives-section-icon" />
-            <span>FACTUAL CLAIMS &middot; TOP TRENDING GENRES (30D)</span>
+            <span>CREATOR RECOMMENDATIONS</span>
           </div>
 
           <div className="narratives-divider" />
 
-          <div className="narratives-groups">
-            {narrativeGroups.map((group) => (
-              <section key={group.title} className="narratives-group">
-                <div className="narratives-group-title">
-                  <img src={group.icon} alt="" className="narratives-group-icon" />
-                  <span>{group.title}</span>
-                </div>
+          {loading && <div className="narratives-status">Loading recommendations...</div>}
+          {!loading && error && <div className="narratives-status narratives-status--error">Failed to load: {error}</div>}
 
-                <div className="narratives-group-card">
-                  {group.claims.map((claim, index) => (
-                    <p key={index} className="narratives-group-claim">
-                      "{claim}"
-                    </p>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
+          {!loading && !error && (
+            <div className="narratives-group-card">
+              {recommendations.length === 0 && (
+                <div className="narratives-status">No recommendations available.</div>
+              )}
+
+              {recommendations.map((item, index) => (
+                <p key={`${item.type}-${index}`} className="narratives-group-claim">
+                  "{item.content}"
+                </p>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
