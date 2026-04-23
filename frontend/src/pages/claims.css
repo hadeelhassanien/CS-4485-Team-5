@@ -13,6 +13,16 @@
   justify-content: space-between;
 }
 
+.claims-genre-select {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
 .claims-brand-logo {
   height: 18px;
   width: auto;
@@ -276,6 +286,65 @@
   width: 16px;
   height: 16px;
   opacity: 0.85;
+}
+
+/* ── Genre dropdown trigger button ───────────────────────────────────────── */
+.claims-genre-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 10px;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1.5px solid rgba(139, 92, 246, 0.55);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  font-family: inherit;
+}
+
+.claims-progress-fill--negative {
+  background: #FF7B7B;
+}
+
+.claims-negative {
+  color: #FF7B7B;
+  font-weight: 600;
+}
+.claims-genre-trigger:hover {
+  background: rgba(139, 92, 246, 0.22);
+  border-color: rgba(139, 92, 246, 0.85);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.claims-genre-trigger--open {
+  background: rgba(139, 92, 246, 0.22);
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.claims-genre-trigger__label {
+  font-size: 10px;
+  color: #8E93AB;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.claims-genre-trigger__value {
+  font-size: 13px;
+  color: #c4b5fd;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.claims-genre-trigger__caret {
+  font-size: 22px;  /* was 10px */
+  color: #8b5cf6;
+  margin-left: 2px;
+}
+
+.claims-genre-dropdown {
+  min-width: 160px;
 }
 
 @media (max-width: 1200px) {

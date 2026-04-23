@@ -1,119 +1,186 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import "./claims.css";
 
-const BASE = "https://cleistogamously-phosphaturic-marlen.ngrok-free.dev";
-const FROM_GENRE = "Horror";
-const TO_GENRE = "Battle Royale";
-const FALLBACK_BREAKDOWN = {
-  fromGenre: FROM_GENRE,
-  toGenre: TO_GENRE,
-  cpmIncrease: 42,
-  engagementRateDiff: 27,
-  avgMonthlyViews: 1230,
-  performanceMultiplier: 2.3,
-  recommendedGenre: TO_GENRE,
-  message: `${TO_GENRE} is a better genre for revenue growth`,
-};
-
-function formatSignedPercent(value) {
-  if (value > 0) return `+${value}%`;
-  return `${value}%`;
-}
-
-function formatNumber(value) {
-  return new Intl.NumberFormat("en-US").format(value);
-}
+const BASE = "https://165.232.136.214.sslip.io";
 
 export default function Claims() {
   const navigate = useNavigate();
-  const [breakdown, setBreakdown] = useState(FALLBACK_BREAKDOWN);
-  const [loadingBreakdown, setLoadingBreakdown] = useState(true);
-  const [breakdownError, setBreakdownError] = useState(null);
+  const [genres, setGenres] = useState([]);
+  const [fromGenre, setFromGenre] = useState("Horror");
+  const [topGenre, setTopGenre] = useState(null);
+  const [topGenreData, setTopGenreData] = useState(null);
+  const [breakdown, setBreakdown] = useState(null);
+  const [fromRevenue, setFromRevenue] = useState(null);
+  const [topRevenue, setTopRevenue] = useState(null);
+  const [loadingGenres, setLoadingGenres] = useState(true);
+  const [loadingBreakdown, setLoadingBreakdown] = useState(false);
+  const [loadingRevenue, setLoadingRevenue] = useState(false);
+  const [errorBreakdown, setErrorBreakdown] = useState(null);
+  const [errorRevenue, setErrorRevenue] = useState(null);
+  const [claiming, setClaiming] = useState(false);
+  const [fromDropdownOpen, setFromDropdownOpen] = useState(false);
+  const fromDropdownRef = useRef(null);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadBreakdown() {
-      try {
-        setLoadingBreakdown(true);
-        setBreakdownError(null);
-
-        const params = new URLSearchParams({
-          fromGenre: FROM_GENRE,
-          toGenre: TO_GENRE,
-        });
-
-        const response = await fetch(`${BASE}/api/genres/breakdown?${params.toString()}`, {
-          headers: { "ngrok-skip-browser-warning": "true" },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Breakdown error: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (isMounted) {
-          setBreakdown(data);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setBreakdownError(error.message);
-        }
-      } finally {
-        if (isMounted) {
-          setLoadingBreakdown(false);
-        }
+    function handleClickOutside(e) {
+      if (fromDropdownRef.current && !fromDropdownRef.current.contains(e.target)) {
+        setFromDropdownOpen(false);
       }
     }
-
-    loadBreakdown();
-
-    return () => {
-      isMounted = false;
-    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const cpmPercent = Math.min(Math.abs(breakdown?.cpmIncrease ?? 0), 100);
-  const engagementPercent = Math.min(Math.abs(breakdown?.engagementRateDiff ?? 0), 100);
+  useEffect(() => {
+    fetch(`${BASE}/api/genres`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Genres error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setGenres(data);
+        const top = [...data].sort((a, b) => b.views - a.views)[0];
+        setTopGenre(top?.name ?? null);
+        setTopGenreData(top ?? null);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingGenres(false));
+  }, []);
+
+  useEffect(() => {
+    if (!topGenre || !fromGenre) return;
+
+    setLoadingBreakdown(true);
+    setErrorBreakdown(null);
+    fetch(
+      `${BASE}/api/genres/breakdown?fromGenre=${encodeURIComponent(fromGenre)}&toGenre=${encodeURIComponent(topGenre)}`
+    )
+      .then((res) => {
+        if (!res.ok) throw new Error(`Breakdown error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setBreakdown(data))
+      .catch((err) => setErrorBreakdown(err.message))
+      .finally(() => setLoadingBreakdown(false));
+
+    setLoadingRevenue(true);
+    setErrorRevenue(null);
+
+    Promise.all([
+      fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(fromGenre)}`).then((res) => {
+        if (!res.ok) throw new Error(`Revenue error: ${res.status}`);
+        return res.json();
+      }),
+      fetch(`${BASE}/api/claims/revenue?genre=${encodeURIComponent(topGenre)}`).then((res) => {
+        if (!res.ok) throw new Error(`Revenue error: ${res.status}`);
+        return res.json();
+      }),
+    ])
+      .then(([fromRev, topRev]) => {
+        setFromRevenue(fromRev);
+        setTopRevenue(topRev);
+      })
+      .catch((err) => setErrorRevenue(err.message))
+      .finally(() => setLoadingRevenue(false));
+  }, [fromGenre, topGenre]);
+
+  const fmt = (n) => {
+    if (n === undefined || n === null) return "—";
+    return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  const fmtViews = (n) => {
+    if (!n) return "—";
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + "k";
+    return String(n);
+  };
+
+  const totalEstimatedRevenue = topRevenue?.totalEstimatedRevenue ?? null;
+  const baseRevenue = fromRevenue?.baseRevenue ?? null;
+  const trendBoost = (topRevenue && fromRevenue)
+    ? Math.max(0, topRevenue.totalEstimatedRevenue - fromRevenue.totalEstimatedRevenue)
+    : null;
+  const unclaimedBalance = topRevenue?.unclaimedBalance ?? null;
+
+  const profitMultiplier = (topRevenue && fromRevenue && fromRevenue.totalEstimatedRevenue > 0)
+    ? (topRevenue.totalEstimatedRevenue / fromRevenue.totalEstimatedRevenue).toFixed(1)
+    : breakdown?.performanceMultiplier ?? "—";
+
+  const fromGenreData = genres.find(g => g.name === fromGenre) ?? null;
+
+  const engagementRisk = fromGenreData && fromGenreData.views > 0
+    ? (() => {
+        const ratio = (fromGenreData.likes / fromGenreData.views) * 100;
+        if (ratio >= 5) return { label: "Low Risk", color: "#62DF9C", detail: `${ratio.toFixed(1)}% like ratio` };
+        if (ratio >= 2) return { label: "Medium Risk", color: "#F5B17B", detail: `${ratio.toFixed(1)}% like ratio` };
+        return { label: "High Risk", color: "#FF7B7B", detail: `${ratio.toFixed(1)}% like ratio` };
+      })()
+    : null;
+
+  const viewsIncrease = breakdown && fromGenreData && topGenreData && fromGenreData.views > 0
+    ? Math.round(((topGenreData.views - fromGenreData.views) / fromGenreData.views) * 100)
+    : 0;
+    
 
   const breakdownRows = breakdown
     ? [
         {
-          label: `higher CPM on ${breakdown.toGenre.toLowerCase()}`,
-          value: formatSignedPercent(breakdown.cpmIncrease),
-          percent: cpmPercent,
+            label: breakdown.cpmIncrease >= 0
+            ? `higher CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`
+            : `lower CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`,
+            value: breakdown.cpmIncrease >= 0
+            ? `+${breakdown.cpmIncrease}%`
+            : `${breakdown.cpmIncrease}%`,
+          type: breakdown.cpmIncrease >= 0 ? "positive" : "neutral",
+          percent: Math.min(Math.max(breakdown.cpmIncrease, 0), 100),
           icon: "↗️",
-          type: breakdown.cpmIncrease > 0 ? "positive" : "neutral",
         },
         {
-          label: "engagement rate",
-          value: formatSignedPercent(breakdown.engagementRateDiff),
-          percent: engagementPercent,
+          label: (() => {
+            const fromEng = fromGenreData?.views > 0
+              ? (fromGenreData.likes / fromGenreData.views * 100).toFixed(1) + "%"
+              : "no data";
+            const toEng = topGenreData?.views > 0
+              ? (topGenreData.likes / topGenreData.views * 100).toFixed(1) + "%"
+              : "no data";
+            return `engagement rate  (${fromEng} → ${toEng})`;
+          })(),
+          value: breakdown.engagementRateDiff > 0
+            ? `+${breakdown.engagementRateDiff}%`
+            : `${breakdown.engagementRateDiff}%`,
+          percent: Math.min(Math.abs(breakdown.engagementRateDiff), 100),
           icon: "📈",
-          type: breakdown.engagementRateDiff > 0 ? "positive" : "neutral",
+          type: breakdown.engagementRateDiff > 0 ? "positive" : "negative",          
         },
         {
-          label: `avg monthly views on ${breakdown.toGenre.toLowerCase()}`,
-          value: formatNumber(breakdown.avgMonthlyViews),
-          percent: 0,
+          label: (() => {
+            const from = fromGenreData?.views > 0 ? fmtViews(fromGenreData.views) : "no data";
+            const to = topGenreData?.views > 0 ? fmtViews(topGenreData.views) : "no data";
+            return `avg monthly views  (${from} → ${to})`;
+          })(),
+          value: viewsIncrease > 999 ? "+999%+" : viewsIncrease >= 0 ? `+${viewsIncrease}%` : `${viewsIncrease}%`,
+          percent: Math.min(Math.max(viewsIncrease, 0), 100),
           icon: "👥",
-          type: "neutral",
+          type: viewsIncrease >= 0 ? "positive" : "neutral",
         },
       ]
     : [];
-
+ 
+    console.log(fromGenreData);
   return (
     <div className="claims-page">
       <header className="claims-header">
-        <img src="/icons/landing/creatorXP.svg" alt="CreatorXP" className="claims-brand-logo" />
-        <img
-          src="/icons/claims/houseIcon.svg"
-          alt="Home"
-          className="claims-home-btn"
-          onClick={() => navigate("/")}
-        />
+        <NavLink to="/" className="main__brand">CreatorXP</NavLink>
+        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+          <nav className="main__nav">
+            <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
+            <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+          </nav>
+          <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
+        </div>
       </header>
 
       <h1 className="claims-title">
@@ -124,103 +191,144 @@ export default function Claims() {
         <section className="claims-card claims-card--left">
           <div className="claims-section-label">
             <img src="/icons/claims/coin.svg" alt="" className="claims-icon claims-icon--section" />
-            <span>ESTIMATED ADDITIONAL REVENUE (TREND)</span>
+            <span>ESTIMATED TOTAL REVENUE (POST-ADOPTION)</span>
           </div>
 
-          <div className="claims-amount">$3,842</div>
+          {loadingRevenue && <div className="claims-status-text">Loading revenue…</div>}
+          {errorRevenue && <div className="claims-status-text claims-status-text--error">Failed to load: {errorRevenue}</div>}
 
-          <div className="claims-period">
-            <img src="/icons/claims/calendar.svg" alt="" className="claims-icon claims-icon--inline" />
-            <span>from Mar 1 - Mar 31 (trend-driven videos)</span>
-          </div>
+          {!loadingRevenue && !errorRevenue && topRevenue && fromRevenue && (
+            <>
+              <div className="claims-amount">{fmt(totalEstimatedRevenue)}</div>
 
-          <div className="claims-row">
-            <span>non-trend revenue</span>
-            <span>$1,210</span>
-          </div>
-          <div className="claims-divider" />
+              <div className="claims-period">
+                <img src="/icons/claims/calendar.svg" alt="" className="claims-icon claims-icon--inline" />
+                <span>from {topRevenue.periodStart} - {topRevenue.periodEnd} (trend-driven videos)</span>
+              </div>
 
-          <div className="claims-row">
-            <span>trend boost</span>
-            <span className="claims-positive">+$2,632</span>
-          </div>
-          <div className="claims-divider" />
+<div className="claims-row">
+                <div className="trends-genre-dropdown-wrap" ref={fromDropdownRef}>
+                  <button
+                    type="button"
+                    className={`claims-genre-trigger${fromDropdownOpen ? " claims-genre-trigger--open" : ""}`}
+                    onClick={(e) => { e.stopPropagation(); setFromDropdownOpen((o) => !o); }}
+                    aria-haspopup="listbox"
+                    aria-expanded={fromDropdownOpen}
+                  >
+                    <span className="claims-genre-trigger__label">your genre</span>
+                    <span className="claims-genre-trigger__value">{fromGenre}</span>
+                    <span className="claims-genre-trigger__caret">{fromDropdownOpen ? "▴" : "▾"}</span>
+                  </button>
 
-          <div className="claims-balance-card">
-            <div className="claims-balance-label">unclaimed balance</div>
-            <div className="claims-balance-value-row">
-              <span className="claims-balance-value">$1,947</span>
-              <span className="claims-balance-status">pending</span>
-            </div>
-          </div>
+                  {fromDropdownOpen && (
+                    <ul className="trends-genre-dropdown claims-genre-dropdown" role="listbox">
+                      {genres.map((g) => (
+                        <li
+                          key={g.name}
+                          role="option"
+                          aria-selected={g.name === fromGenre}
+                          className={`trends-genre-dropdown-item${g.name === fromGenre ? " trends-genre-dropdown-item--active" : ""}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFromGenre(g.name);
+                            setFromDropdownOpen(false);
+                          }}
+                        >
+                          {g.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                  <span style={{ fontSize: "12px", color: "#8E93AB", marginBottom: "2px" }}>current revenue</span>
+                  <span>{fmt(baseRevenue)}</span>
+                </div>
+              </div>
+              <div className="claims-divider" />
 
-          <button className="claims-cta-btn" type="button">
-            <span className="claims-cta-icon">$</span>
-            Claim earnings
-          </button>
+              <div className="claims-balance-card">
+                <div className="claims-balance-label">trend boost</div>
+                <div className="claims-balance-value-row">
+                  <span className="claims-balance-value claims-positive">+{fmt(trendBoost)}</span>
+                  <span className="claims-balance-status">pending</span>
+                </div>
+              </div>
+            </>
+          )}
         </section>
 
         <section className="claims-card claims-card--right">
           <div className="claims-section-label">
             <img src="/icons/claims/pie.svg" alt="" className="claims-icon claims-icon--section" />
-            <span>BREAKDOWN: WHY TREND WORKS</span>
+              <span>BREAKDOWN: WHY TRANSITIONING TO {topGenre?.toUpperCase() ?? "TREND"} WORKS</span>
           </div>
 
-          <div className="claims-breakdown-list">
-            {loadingBreakdown && <div className="claims-row"><span>Loading breakdown…</span></div>}
+          {loadingBreakdown && <div className="claims-status-text">Loading breakdown…</div>}
+          {errorBreakdown && <div className="claims-status-text claims-status-text--error">Failed to load: {errorBreakdown}</div>}
 
-            {!loadingBreakdown && breakdownError && (
-              <div className="claims-row">
-                <span>Using saved breakdown values</span>
-                <span className="claims-neutral">live API unavailable</span>
-              </div>
-            )}
-
-            {breakdownRows.map((row) => (
-                <div key={row.label}>
-                  <div className="claims-row claims-row--spaced">
-                    <span>
-                      {row.icon} {row.label}
-                    </span>
-                    <span className={row.type === "positive" ? "claims-positive" : "claims-neutral"}>
-                      {row.value}
-                    </span>
+          {!loadingBreakdown && !errorBreakdown && (
+            <>
+              <div className="claims-breakdown-list">
+                {breakdownRows.map((row) => (
+                  <div key={row.label}>
+                    <div className="claims-row claims-row--spaced">
+                      <span>{row.icon} {row.label}</span>
+                      <span className={row.type === "positive" ? "claims-positive" : row.type === "negative" ? "claims-negative" : "claims-neutral"}>
+                        {row.value}
+                      </span>
+                    </div>
+                    {row.percent > 0 && (
+                      <div className="claims-progress-track">
+                        <div
+                          className={`claims-progress-fill${row.type === "negative" ? " claims-progress-fill--negative" : ""}`}
+                          style={{ width: `${row.percent}%` }}
+                        />
+                      </div>
+                    )}
+                    <div className="claims-divider" />
                   </div>
-                  {row.percent > 0 && (
-                    <div className="claims-progress-track">
-                      <div className="claims-progress-fill" style={{ width: `${row.percent}%` }} />
+                ))}
+
+                {engagementRisk && (
+                  <div>
+                    <div className="claims-row claims-row--spaced">
+                      <span>⚠️ engagement risk</span>
+                      <span style={{ color: engagementRisk.color, fontWeight: 600 }}>
+                        {engagementRisk.label}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#8E93AB", marginBottom: "8px" }}>
+                      {engagementRisk.detail} on {fromGenre?.toLowerCase()}
+                    </div>
+                    <div className="claims-divider" />
+                  </div>
+                )}
+              </div>
+
+              <div className="claims-last-paid-card">
+                <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--file" />
+                <div>
+                  <div className="claims-last-paid-label">performance guarantee</div>
+                  <div className="claims-last-paid-value">
+                    trend adaptation yields avg. {profitMultiplier}x profit
+                  </div>
+                  {breakdown?.message && (
+                    <div style={{ fontSize: "13px", color: "#b2b9d5", marginTop: "4px" }}>
+                      {breakdown.message}
                     </div>
                   )}
-                  <div className="claims-divider" />
                 </div>
-              ))}
-          </div>
-
-          <p className="claims-guarantee">
-            <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--inline claims-guarantee-icon" />
-            <strong>performance guarantee:</strong> trend adaptation yields
-            <br />
-            <span className="claims-muted-strong">
-              avg. {breakdown ? `${breakdown.performanceMultiplier.toFixed(1)}x` : "2.3x"} profit
-              {" "}
-              (based on your history)
-            </span>
-          </p>
-
-          <div className="claims-last-paid-card">
-            <img src="/icons/claims/file.svg" alt="" className="claims-icon claims-icon--file" />
-            <div>
-              <div className="claims-last-paid-label">last claim paid</div>
-              <div className="claims-last-paid-value">April 2, 2025 &middot; $2,410</div>
-            </div>
-          </div>
+              </div>
+            </>
+          )}
         </section>
       </div>
 
       <footer className="claims-footer">
         <div className="claims-footer-note">
           <img src="/icons/claims/clock.svg" alt="" className="claims-icon claims-icon--footer" />
-          <span>funds clear within 48h after claim</span>
+          <span></span>
         </div>
         <div className="claims-footer-note">
           <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--footer" />
