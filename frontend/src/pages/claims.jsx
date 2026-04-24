@@ -99,16 +99,17 @@ export default function Claims() {
   };
 
   const totalEstimatedRevenue = topRevenue?.totalEstimatedRevenue ?? null;
-  const currentRevenue = fromRevenue?.totalEstimatedRevenue ?? null;
-  // Use trendBoost directly from API
-  const trendBoost = topRevenue?.trendBoost ?? null;
-  const unclaimedBalance = topRevenue?.unclaimedBalance ?? null;
+  const baseRevenue = fromRevenue?.baseRevenue ?? null;
+  const trendBoost = (topRevenue && fromRevenue)
+    ? Math.max(0, topRevenue.totalEstimatedRevenue - fromRevenue.totalEstimatedRevenue)
+    : null;
 
   const profitMultiplier = (topRevenue && fromRevenue && fromRevenue.totalEstimatedRevenue > 0)
     ? (topRevenue.totalEstimatedRevenue / fromRevenue.totalEstimatedRevenue).toFixed(1)
     : breakdown?.performanceMultiplier ?? "—";
 
-  const fromGenreData = genres.find(g => g.name === fromGenre) ?? null;
+  const fromGenreData = genres.find((g) => g.name === fromGenre) ?? null;
+  const toGenreLabel = breakdown?.toGenre ?? topGenre ?? "trend";
 
   const engagementRisk = fromGenreData && fromGenreData.views > 0
     ? (() => {
@@ -127,8 +128,8 @@ export default function Claims() {
     ? [
         {
           label: breakdown.cpmIncrease >= 0
-            ? `higher CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`
-            : `lower CPM on ${breakdown.toGenre?.toLowerCase() ?? topGenre?.toLowerCase()}`,
+            ? `higher CPM on ${toGenreLabel.toLowerCase()}`
+            : `lower CPM on ${toGenreLabel.toLowerCase()}`,
           value: breakdown.cpmIncrease >= 0
             ? `+${breakdown.cpmIncrease}%`
             : `${breakdown.cpmIncrease}%`,
@@ -139,10 +140,10 @@ export default function Claims() {
         {
           label: (() => {
             const fromEng = fromGenreData?.views > 0
-              ? (fromGenreData.likes / fromGenreData.views * 100).toFixed(1) + "%"
+              ? `${((fromGenreData.likes / fromGenreData.views) * 100).toFixed(1)}%`
               : "no data";
             const toEng = topGenreData?.views > 0
-              ? (topGenreData.likes / topGenreData.views * 100).toFixed(1) + "%"
+              ? `${((topGenreData.likes / topGenreData.views) * 100).toFixed(1)}%`
               : "no data";
             return `engagement rate  (${fromEng} → ${toEng})`;
           })(),
@@ -166,6 +167,8 @@ export default function Claims() {
         },
       ]
     : [];
+
+  console.log(fromGenreData);
 
   return (
     <div className="claims-page">
@@ -210,7 +213,10 @@ export default function Claims() {
                   <button
                     type="button"
                     className={`claims-genre-trigger${fromDropdownOpen ? " claims-genre-trigger--open" : ""}`}
-                    onClick={(e) => { e.stopPropagation(); setFromDropdownOpen((o) => !o); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFromDropdownOpen((o) => !o);
+                    }}
                     aria-haspopup="listbox"
                     aria-expanded={fromDropdownOpen}
                   >
@@ -351,7 +357,7 @@ export default function Claims() {
         </div>
         <div className="claims-footer-note">
           <img src="/icons/claims/check.svg" alt="" className="claims-icon claims-icon--footer" />
-          <span>trend-proof earnings</span>
+          <span>genre-optimized earnings</span>
         </div>
       </footer>
     </div>
