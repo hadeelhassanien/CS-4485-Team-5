@@ -38,26 +38,27 @@ const BASE = "https://165.232.136.214.sslip.io";
 
 export default function Trends() {
   const navigate = useNavigate();
-  const [selectedBlock, setSelectedBlock] = useState("before"); // auto-highlight 'before' on load
-  const [beforeGenre, setBeforeGenre]               = useState("Horror");
+
+  const [showPerfInfo, setShowPerfInfo] = useState(false);
+  const [selectedBlock, setSelectedBlock]           = useState("before");
+  const [beforeGenre, setBeforeGenre]               = useState("Shooter");
   const [beforeDropdownOpen, setBeforeDropdownOpen] = useState(false);
+  const [genres, setGenres]                         = useState([]);
+  const [predicted, setPredicted]                   = useState([]);
+  const [reco, setReco]                             = useState(null);
+  const [loading, setLoading]                       = useState(true);
+  const [error, setError]                           = useState(null);
   const beforeDropdownRef = useRef(null);
 
   useEffect(() => {
-    function handleClickOutside(e) {
-      if (beforeDropdownRef.current && !beforeDropdownRef.current.contains(e.target)) {
-        setBeforeDropdownOpen(false);
+      function handleClickOutside(e) {
+        if (beforeDropdownRef.current && !beforeDropdownRef.current.contains(e.target)) {
+          setBeforeDropdownOpen(false);
+        }
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const [genres, setGenres]       = useState([]);
-  const [predicted, setPredicted] = useState([]);
-  const [reco, setReco]           = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []); 
 
   useEffect(() => {
     fetch(`${BASE}/api/genres`, {
@@ -222,8 +223,28 @@ const topByChange = predicted.length
         </div>
         {/* ── Mid: Performance vs Trend Shift ── */}
         <div className="trends-card trends-card--mid">
-          <div className="trends-section-label">PERFORMANCE VS TREND SHIFT</div>
+          <div className="trends-section-label" style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ flex: 1 }}>PERFORMANCE VS TREND SHIFT</span>
+            <button className="claims-info-btn" onClick={() => setShowPerfInfo(true)}>?</button>
+          </div>
 
+          {showPerfInfo && (
+            <div className="claims-modal-overlay" onClick={() => setShowPerfInfo(false)}>
+              <div className="claims-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="claims-modal-close" onClick={() => setShowPerfInfo(false)}>✕</button>
+                <h3 className="claims-modal-title">How does this work?</h3>
+                <p className="claims-modal-body">
+                  <strong>Before</strong> shows your current genre's monthly views and trend direction. Select your genre from the dropdown to compare.
+                </p>
+                <p className="claims-modal-body">
+                  <strong>After</strong> shows the top trending genre's views — where the audience is moving right now.
+                </p>
+                <p className="claims-modal-body">
+                  <strong>Trend adoption payout</strong> is the estimated viewership uplift you'd gain by switching to the top genre.
+                </p>
+              </div>
+            </div>
+          )}
           {/* Before card */}
           <div
             className={`trends-before-card${selectedBlock === "before" ? " trends-perf-card--active" : ""}`}
@@ -234,11 +255,11 @@ const topByChange = predicted.length
                 className="trends-sub-card-label trends-sub-card-label--dropdown"
                 onClick={(e) => { e.stopPropagation(); setBeforeDropdownOpen((o) => !o); }}
               >
-                Before ({beforeGenre.toLowerCase()}) <span className="trends-dropdown-caret">{beforeDropdownOpen ? "▴" : "▾"}</span>
+                Before ({beforeGenre?.toLowerCase() ?? "..."}) <span className="trends-dropdown-caret">{beforeDropdownOpen ? "▴" : "▾"}</span>
               </div>
               {beforeDropdownOpen && (
                 <ul className="trends-genre-dropdown">
-                  {genres.map((g) => (
+                  {genres.filter(g => g.views > 0).map((g) => (
                     <li
                       key={g.name}
                       className={`trends-genre-dropdown-item${g.name === beforeGenre ? " trends-genre-dropdown-item--active" : ""}`}
@@ -355,7 +376,7 @@ const topByChange = predicted.length
                 reco.message
               ) : (
                 <>
-                  your top genre was <strong>{beforeGenre.toLowerCase()}</strong> — shift to{" "}
+                  your top genre was <strong>{beforeGenre?.toLowerCase() ?? "—"}</strong> — shift to{" "}
                   <strong>{topByChange[0]?.name?.toLowerCase() ?? "—"}</strong> now matches predicted{" "}
                   <strong>{growthDiff > 0 ? `+${growthDiff}%` : `${growthDiff}%`} growth.</strong>
                 </>

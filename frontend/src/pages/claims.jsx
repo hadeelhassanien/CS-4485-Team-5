@@ -7,7 +7,7 @@ const BASE = "https://165.232.136.214.sslip.io";
 export default function Claims() {
   const navigate = useNavigate();
   const [genres, setGenres] = useState([]);
-  const [fromGenre, setFromGenre] = useState("Horror");
+  const [fromGenre, setFromGenre] = useState("shooter");
   const [topGenre, setTopGenre] = useState(null);
   const [topGenreData, setTopGenreData] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
@@ -20,6 +20,7 @@ export default function Claims() {
   const [errorRevenue, setErrorRevenue] = useState(null);
   const [claiming, setClaiming] = useState(false);
   const [fromDropdownOpen, setFromDropdownOpen] = useState(false);
+  const [showRevenueInfo, setShowRevenueInfo] = useState(false);
   const fromDropdownRef = useRef(null);
 
   useEffect(() => {
@@ -132,8 +133,8 @@ export default function Claims() {
           value: breakdown.cpmIncrease >= 0
             ? `+${breakdown.cpmIncrease}%`
             : `${breakdown.cpmIncrease}%`,
-          type: breakdown.cpmIncrease >= 0 ? "positive" : "neutral",
-          percent: Math.min(Math.max(breakdown.cpmIncrease, 0), 100),
+          type: breakdown.cpmIncrease >= 0 ? "positive" : "negative",
+          percent: Math.min(Math.abs(breakdown.cpmIncrease), 100),
           icon: "↗️",
         },
         {
@@ -160,9 +161,9 @@ export default function Claims() {
             return `avg monthly views  (${from} → ${to})`;
           })(),
           value: viewsIncrease > 999 ? "+999%+" : viewsIncrease >= 0 ? `+${viewsIncrease}%` : `${viewsIncrease}%`,
-          percent: Math.min(Math.max(viewsIncrease, 0), 100),
+          percent: Math.min(Math.abs(viewsIncrease), 100),
           icon: "👥",
-          type: viewsIncrease >= 0 ? "positive" : "neutral",
+          type: viewsIncrease >= 0 ? "positive" : "negative",
         },
       ]
     : [];
@@ -192,6 +193,7 @@ export default function Claims() {
           <div className="claims-section-label">
             <img src="/icons/claims/coin.svg" alt="" className="claims-icon claims-icon--section" />
             <span>ESTIMATED TOTAL REVENUE (POST-ADOPTION)</span>
+            <button className="claims-info-btn" onClick={() => setShowRevenueInfo(true)}>?</button>
           </div>
 
           {loadingRevenue && <div className="claims-status-text">Loading revenue…</div>}
@@ -225,7 +227,7 @@ export default function Claims() {
 
                   {fromDropdownOpen && (
                     <ul className="trends-genre-dropdown claims-genre-dropdown" role="listbox">
-                      {genres.map((g) => (
+                      {genres.filter(g => g.views > 0).map((g) => (
                         <li
                           key={g.name}
                           role="option"
@@ -245,7 +247,7 @@ export default function Claims() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                   <span style={{ fontSize: "12px", color: "#8E93AB", marginBottom: "2px" }}>current revenue</span>
-                  <span>{fmt(baseRevenue)}</span>
+                  <span>{fmt(currentRevenue)}</span>
                 </div>
               </div>
               <div className="claims-divider" />
@@ -258,6 +260,26 @@ export default function Claims() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* Revenue info modal */}
+          {showRevenueInfo && (
+            <div className="claims-modal-overlay" onClick={() => setShowRevenueInfo(false)}>
+              <div className="claims-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="claims-modal-close" onClick={() => setShowRevenueInfo(false)}>✕</button>
+                <h3 className="claims-modal-title">How is this calculated?</h3>
+                <p className="claims-modal-body">
+                  <strong>Post-Adoption Revenue</strong> is your estimated monthly earnings if you switch to the top trending genre ({topGenre}).
+                  It's calculated using the genre's average views and an industry CPM of $3.50 per 1,000 views.
+                </p>
+                <p className="claims-modal-body">
+                  <strong>Current Revenue</strong> is your estimated earnings staying in your current genre, using a base CPM of $2.00. You can change this genre using the dropdown.
+                </p>
+                <p className="claims-modal-body">
+                  <strong>Trend Boost</strong> is the additional revenue you could earn by making the switch.
+                </p>
+              </div>
+            </div>
           )}
         </section>
 
@@ -317,7 +339,7 @@ export default function Claims() {
                     trend adaptation yields avg. {profitMultiplier}x profit
                   </div>
                   {breakdown?.message && (
-                    <div style={{ fontSize: "13px", color: "#b2b9d5", marginTop: "4px" }}>
+                    <div style={{ fontSize: "17px", color: "#b2b9d5", marginTop: "4px" }}>
                       {breakdown.message}
                     </div>
                   )}
