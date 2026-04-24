@@ -166,6 +166,8 @@ export default function Claims() {
         },
       ]
     : [];
+    
+    console.log(currentRevenue);
 
   return (
     <div className="claims-page">
