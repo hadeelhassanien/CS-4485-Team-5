@@ -99,7 +99,7 @@ export default function Claims() {
   };
 
   const totalEstimatedRevenue = topRevenue?.totalEstimatedRevenue ?? null;
-  const currentRevenue = fromRevenue?.totalEstimatedRevenue ?? null;
+  const baseRevenue = fromRevenue?.totalEstimatedRevenue ?? null;
   // Use trendBoost directly from API
   const trendBoost = topRevenue?.trendBoost ?? null;
   const unclaimedBalance = topRevenue?.unclaimedBalance ?? null;
@@ -167,8 +167,6 @@ export default function Claims() {
       ]
     : [];
     
-    console.log(currentRevenue);
-
   return (
     <div className="claims-page">
       <header className="claims-header">
@@ -243,7 +241,7 @@ export default function Claims() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                   <span style={{ fontSize: "12px", color: "#8E93AB", marginBottom: "2px" }}>current revenue</span>
-                  <span>{fmt(currentRevenue)}</span>
+                  <span>{fmt(baseRevenue)}</span>
                 </div>
               </div>
               <div className="claims-divider" />
