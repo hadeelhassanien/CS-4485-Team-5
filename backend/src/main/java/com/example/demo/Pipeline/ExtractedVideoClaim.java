@@ -31,6 +31,17 @@ public class ExtractedVideoClaim {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "genre_name")
+    private String genreName;
+
+    public String getGenreName() {
+        return genreName;
+    }
+    
+    public void setGenreName(String genreName) {
+        this.genreName = genreName;
+    }
+
     public ExtractedVideoClaim() {}
 
     public Long getId() {

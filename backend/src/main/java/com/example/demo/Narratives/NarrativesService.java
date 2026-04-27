@@ -1,11 +1,15 @@
 package com.example.demo.Narratives;
-import org.springframework.stereotype.Service;
+import com.example.demo.Pipeline.ExtractedVideoClaim;
 import com.example.demo.Pipeline.ExtractedVideoClaimRepo;
 import com.example.demo.YouTubeAPI.VideoDTO;
 import com.example.demo.YouTubeAPI.YouTubeService;
-import com.example.demo.Pipeline.ExtractedVideoClaim;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import org.springframework.stereotype.Service;
 
 @Service
 public class NarrativesService {
@@ -25,18 +29,18 @@ public class NarrativesService {
         List<ExtractedVideoClaim> claimsToUse = loadClaimsForNarratives(regionCode, maxResults);
 
         if (claimsToUse.isEmpty()) {
-            return new NarrativesPageResponse(defaultRecentNarratives(), defaultOverviewSections());
+            return new NarrativesPageResponse( defaultRecentNarratives(), defaultOverviewSections());
         }
 
-        Map<String, List<ExtractedVideoClaim>> byCategory = new LinkedHashMap<>();
-        byCategory.put("Gameplay Flow", new ArrayList<>());
-        byCategory.put("World Interaction", new ArrayList<>());
-        byCategory.put("Challenge & Progression", new ArrayList<>());
-        byCategory.put("Player Experience", new ArrayList<>());
+        Map<String, List<ExtractedVideoClaim>> grouped = new LinkedHashMap<>();
+        grouped.put("Gameplay Flow", new ArrayList<>());
+        grouped.put("World Interaction", new ArrayList<>());
+        grouped.put("Challenge & Progression", new ArrayList<>());
+        grouped.put("Player Experience", new ArrayList<>());
 
         for (ExtractedVideoClaim claim : claimsToUse) {
             String category = normalizeCategory(claim.getClaimCategory());
-            byCategory.computeIfAbsent(category, ignored -> new ArrayList<>()).add(claim);
+            grouped.computeIfAbsent(category, k -> new ArrayList<>()).add(claim);
         }
 
         List<String> recentNarratives = claimsToUse.stream()
@@ -49,7 +53,8 @@ public class NarrativesService {
                 .toList();
 
         List<NarrativeSectionDTO> sections = new ArrayList<>();
-        for (Map.Entry<String, List<ExtractedVideoClaim>> entry : byCategory.entrySet()) {
+
+        for (Map.Entry<String, List<ExtractedVideoClaim>> entry : grouped.entrySet()) {
             List<String> items = entry.getValue().stream()
                     .sorted(Comparator.comparing(
                             c -> c.getConfidence() == null ? 0.0 : c.getConfidence(),
@@ -61,7 +66,7 @@ public class NarrativesService {
                     .filter(s -> !s.isBlank())
                     .distinct()
                     .limit(3)
-                    .collect(Collectors.toList());
+                    .toList();
 
             if (items.isEmpty()) {
                 items = fallbackItemsFor(entry.getKey());
@@ -77,29 +82,55 @@ public class NarrativesService {
         return new NarrativesPageResponse(recentNarratives, sections);
     }
 
+    public GenreClaimsResponse buildClaimsByGenre(String requestedGenre) {
+        List<String> genres = extractedVideoClaimRepo.findDistinctGenreNames();
+
+        if (genres.isEmpty()) {
+            return new GenreClaimsResponse(List.of(), null, List.of());
+        }
+
+        String selectedGenre = requestedGenre;
+
+        if (selectedGenre == null || selectedGenre.isBlank() || !genres.contains(selectedGenre)) {
+            selectedGenre = genres.get(0);
+        }
+
+        List<String> narratives = extractedVideoClaimRepo
+                .findByGenreNameOrderByCreatedAtDesc(selectedGenre)
+                .stream()
+                .map(ExtractedVideoClaim::getClaimText)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .distinct()
+                .toList();
+
+        return new GenreClaimsResponse(genres, selectedGenre, narratives);
+    }
+
     private List<ExtractedVideoClaim> loadClaimsForNarratives(String regionCode, int maxResults) {
         List<VideoDTO> videos = youTubeService.getPopularGamingVideoDetails(Math.min(maxResults, 20), regionCode);
 
-        List<String> currentVideoIds = videos.stream()
+        List<String> videoIds = videos.stream()
                 .map(VideoDTO::getVideoId)
                 .filter(Objects::nonNull)
                 .toList();
 
-        List<ExtractedVideoClaim> matchingClaims = currentVideoIds.isEmpty()
+        List<ExtractedVideoClaim> matchingClaims = videoIds.isEmpty()
                 ? List.of()
-                : extractedVideoClaimRepo.findByVideoIdInOrderByConfidenceDescCreatedAtDesc(currentVideoIds);
+                : extractedVideoClaimRepo.findByVideoIdInOrderByConfidenceDescCreatedAtDesc(videoIds);
 
         if (!matchingClaims.isEmpty()) {
             return matchingClaims;
         }
 
-        // Demo-safe fallback: use any recently imported claims in DB if live video IDs don't match.
         List<ExtractedVideoClaim> allClaims = extractedVideoClaimRepo.findAll();
         if (allClaims.isEmpty()) {
             return List.of();
         }
 
         return allClaims.stream()
+                .filter(c -> c.getClaimText() != null && !c.getClaimText().isBlank())
                 .sorted(Comparator.comparing(ExtractedVideoClaim::getCreatedAt).reversed())
                 .limit(30)
                 .toList();
@@ -110,10 +141,12 @@ public class NarrativesService {
             return "Gameplay Flow";
         }
 
-        String value = raw.trim();
-        if (value.equalsIgnoreCase("World Interaction")) return "World Interaction";
-        if (value.equalsIgnoreCase("Challenge & Progression")) return "Challenge & Progression";
-        if (value.equalsIgnoreCase("Player Experience")) return "Player Experience";
+        if (raw.equalsIgnoreCase("World Interaction")){ return "World Interaction";}
+
+        if (raw.equalsIgnoreCase("Challenge & Progression")) {return "Challenge & Progression";}
+
+        if (raw.equalsIgnoreCase("Player Experience")) {return "Player Experience";}
+
         return "Gameplay Flow";
     }
 
@@ -130,42 +163,46 @@ public class NarrativesService {
     private List<NarrativeSectionDTO> defaultOverviewSections() {
         return List.of(
                 new NarrativeSectionDTO("Gameplay Flow", List.of(
-                        "Highlights how gameplay systems encourage quick decisions and fluid transitions between encounters.",
-                        "Describes how core mechanics support a responsive and engaging gameplay loop."
-                )),
-                new NarrativeSectionDTO("World Interaction", List.of(
-                        "Explores how environments encourage exploration through alternate paths and subtle visual guidance.",
-                        "Highlights how level structure supports player choice without over-directing movement."
-                )),
-                new NarrativeSectionDTO("Challenge & Progression", List.of(
-                        "Describes how progression systems create a steady sense of growth over time.",
-                        "Highlights how escalating encounters help maintain difficulty and long-term engagement."
-                )),
-                new NarrativeSectionDTO("Player Experience", List.of(
-                        "Highlights how pacing and feedback shape the overall feel of moment-to-moment play.",
-                        "Explores how satisfying interactions support immersion and player investment."
-                ))
+                                "Highlights how gameplay systems encourage quick decisions and fluid transitions between encounters.",
+                                "Describes how core mechanics support a responsive and engaging gameplay loop."
+                        )),
+                new NarrativeSectionDTO("World Interaction",List.of(
+                                "Explores how environments encourage exploration through alternate paths and subtle visual guidance.",
+                                "Highlights how level structure supports player choice without over-directing movement."
+                        )),
+                new NarrativeSectionDTO("Challenge & Progression",List.of(
+                                "Describes how progression systems create a steady sense of growth over time.",
+                                "Highlights how escalating encounters help maintain difficulty and long-term engagement."
+                        )),
+                new NarrativeSectionDTO("Player Experience",List.of(
+                                "Highlights how pacing and feedback shape the overall feel of moment-to-moment play.",
+                                "Explores how satisfying interactions support immersion and player investment."
+                        ))
         );
     }
 
     private List<String> fallbackItemsFor(String title) {
-        return switch (title) {
-            case "World Interaction" -> List.of(
-                    "Explores how environments encourage exploration through alternate paths and subtle visual guidance.",
-                    "Highlights how level structure supports player choice without over-directing movement."
-            );
-            case "Challenge & Progression" -> List.of(
-                    "Describes how progression systems create a steady sense of growth over time.",
-                    "Highlights how escalating encounters help maintain difficulty and long-term engagement."
-            );
-            case "Player Experience" -> List.of(
-                    "Highlights how pacing and feedback shape the overall feel of moment-to-moment play.",
-                    "Explores how satisfying interactions support immersion and player investment."
-            );
-            default -> List.of(
-                    "Highlights how gameplay systems encourage quick decisions and fluid transitions between encounters.",
-                    "Describes how core mechanics support a responsive and engaging gameplay loop."
-            );
-        };
+        switch (title) {
+            case "World Interaction":
+                return List.of(
+                        "Explores how environments encourage exploration through alternate paths and subtle visual guidance.",
+                        "Highlights how level structure supports player choice without over-directing movement."
+                );
+            case "Challenge & Progression":
+                return List.of(
+                        "Describes how progression systems create a steady sense of growth over time.",
+                        "Highlights how escalating encounters help maintain difficulty and long-term engagement."
+                );
+            case "Player Experience":
+                return List.of(
+                        "Highlights how pacing and feedback shape the overall feel of moment-to-moment play.",
+                        "Explores how satisfying interactions support immersion and player investment."
+                );
+            default:
+                return List.of(
+                        "Highlights how gameplay systems encourage quick decisions and fluid transitions between encounters.",
+                        "Describes how core mechanics support a responsive and engaging gameplay loop."
+                );
+        }
     }
 }
