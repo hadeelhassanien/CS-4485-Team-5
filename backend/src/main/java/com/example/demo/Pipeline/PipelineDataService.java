@@ -65,6 +65,12 @@ public class PipelineDataService {
             }
 
             String videoId = video.getVideoId().trim();
+            String genreName = video.resolvedGenreName();
+            
+            if (genreName.equalsIgnoreCase("General")) {
+                genreName = inferGenreFromClaims(video.getClaims());
+            }
+
             extractedVideoClaimRepo.deleteByVideoId(videoId);
 
             List<String> normalizedClaims = normalizeRawClaims(video.getClaims());
@@ -77,6 +83,7 @@ public class PipelineDataService {
                 claim.setConfidence(null);
                 claim.setModelVersion("ds-json-demo");
                 claim.setCreatedAt(LocalDateTime.now());
+                claim.setGenreName(genreName);
                 extractedVideoClaimRepo.save(claim);
                 saved++;
             }
@@ -84,6 +91,64 @@ public class PipelineDataService {
 
         return saved;
     }
+
+    private String inferGenreFromClaims(List<String> claims) {
+    if (claims == null || claims.isEmpty()) {
+        return "General";
+    }
+
+    String text = String.join(" ", claims).toLowerCase();
+
+    if (text.contains("minecraft") || text.contains("craft") || text.contains("fishing")
+            || text.contains("resources") || text.contains("survival")) {
+        return "Survival Craft";
+    }
+
+    if (text.contains("battle royale") || text.contains("zone") || text.contains("last alive")) {
+        return "Battle Royale";
+    }
+
+    if (text.contains("gun") || text.contains("weapon") || text.contains("shoot")
+            || text.contains("sniper") || text.contains("fps")) {
+        return "Shooter";
+    }
+
+    if (text.contains("party") || text.contains("friend") || text.contains("hide-and-seek")
+            || text.contains("tagged") || text.contains("dog")) {
+        return "Party / Casual";
+    }
+
+    if (text.contains("fight") || text.contains("combat") || text.contains("boss")
+            || text.contains("damage") || text.contains("hero")) {
+        return "Action";
+    }
+
+    if (text.contains("scary") || text.contains("monster") || text.contains("horror")
+            || text.contains("escape")) {
+        return "Horror";
+    }
+
+    if (text.contains("soccer") || text.contains("football") || text.contains("nba")
+            || text.contains("sports")) {
+        return "Sports Sim";
+    }
+
+    if (text.contains("race") || text.contains("car") || text.contains("driving")
+            || text.contains("speed")) {
+        return "Racing";
+    }
+
+    if (text.contains("simulator") || text.contains("tycoon")
+            || text.contains("management")) {
+        return "Simulation";
+    }
+
+    if (text.contains("puzzle") || text.contains("logic") || text.contains("match")) {
+        return "Puzzle";
+    }
+
+    return "General";
+}
 
     private List<String> normalizeRawClaims(List<String> rawClaims) {
         if (rawClaims == null || rawClaims.isEmpty()) {

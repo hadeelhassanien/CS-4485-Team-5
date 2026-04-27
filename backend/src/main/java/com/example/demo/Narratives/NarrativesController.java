@@ -1,4 +1,5 @@
 package com.example.demo.Narratives;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +19,13 @@ public class NarrativesController {
             @RequestParam(defaultValue = "US") String regionCode,
             @RequestParam(defaultValue = "12") int maxResults
     ) {
-        return ResponseEntity.ok(
-                narrativesService.buildPageData(regionCode, maxResults)
-        );
+        return ResponseEntity.ok(narrativesService.buildPageData(regionCode, maxResults));
+    }
+
+    @GetMapping("/claims-by-genre")
+    public ResponseEntity<GenreClaimsResponse> getClaimsByGenre(
+            @RequestParam(required = false) String genre
+    ) {
+        return ResponseEntity.ok(narrativesService.buildClaimsByGenre(genre));
     }
 }

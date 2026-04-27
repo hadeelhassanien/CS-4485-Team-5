@@ -72,7 +72,9 @@ CREATE TABLE IF NOT EXISTS extracted_video_claim (
     confidence DOUBLE NULL,
     model_version VARCHAR(255) NULL,
     created_at DATETIME NOT NULL,
+    genre_name VARCHAR(255) NULL,
     PRIMARY KEY (id),
     INDEX idx_extracted_video_claim_video_id (video_id),
     INDEX idx_extracted_video_claim_claim_category (claim_category)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    INDEX idx_extracted_video_claim_genre_name (genre_name),
+);
