@@ -172,7 +172,7 @@ const topByChange = predicted.length
           <nav className="main__nav">
             <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
             <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
-            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Revenue</NavLink>
           </nav>
           <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
         </div>
@@ -183,7 +183,7 @@ const topByChange = predicted.length
 
       <div className="trends-grid">
         {/* ── Left: Top Trending Genres ── */}
-        <div className="trends-card trends-card--left">
+        <div className="trends-card trends-card--left" style={{ paddingTop: "10px" }}>
           <div className="trends-card-header">
             <img src="/icons/trends/topTrendingGenres.svg" alt="" className="trends-icon-sm" style={{ width: "48px", height: "48px" }} />            <span className="trends-card-header-text">TOP TRENDING GENRES (BY VIEWS)</span>
             <button className="claims-info-btn" style={{ marginLeft: "auto" }} onClick={() => setShowLeftInfo(true)}>?</button>
@@ -364,14 +364,17 @@ const topByChange = predicted.length
         </div>
 
         {/* ── Right: Future Trends (Predicted) ── */}
-        <div className="trends-card trends-card--right">
-          <div className="trends-section-label">FUTURE TRENDS (PREDICTED)</div>
+        <div className="trends-card trends-card--right" style={{ paddingTop: "20px" }}>          
+          <div className="trends-section-label" style={{ textAlign: "center" }}>FUTURE TRENDS (PREDICTED)</div>
 
-          <div className="trends-bar-chart">
-            {barData.map((b) => (
+          <div className="trends-bar-chart" style={{ marginTop: "24px" }}>
+            {barData.map((b, i) => (
               <div key={b.label} className="trends-bar-col">
                 <div className="trends-bar-rect" style={{ height: b.height }} />
                 <span className="trends-bar-col-label">{b.label}</span>
+                <span className="trends-bar-col-pct">
+                  {barSource[i] ? `+${Math.round((predicted.length ? barSource[i].predictedGrowthPercent : barSource[i].changePercent * 100))}%` : ""}
+                </span>
               </div>
             ))}
           </div>
