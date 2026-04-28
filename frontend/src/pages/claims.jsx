@@ -190,7 +190,7 @@ export default function Claims() {
         <section className="claims-card claims-card--left">
           <div className="claims-section-label">
             <img src="/icons/claims/coin.svg" alt="" className="claims-icon claims-icon--section" />
-            <span>ESTIMATED TOTAL REVENUE (POST-ADOPTION)</span>
+            <span>ESTIMATED TOTAL REVENUE ({topGenre?.toUpperCase() ?? "POST-ADOPTION"})</span>
             <button className="claims-info-btn" onClick={() => setShowRevenueInfo(true)}>?</button>
           </div>
 
@@ -267,7 +267,7 @@ export default function Claims() {
                 <button className="claims-modal-close" onClick={() => setShowRevenueInfo(false)}>✕</button>
                 <h3 className="claims-modal-title">How is this calculated?</h3>
                 <p className="claims-modal-body">
-                  <strong>Post-Adoption Revenue</strong> is your estimated monthly earnings if you switch to the top trending genre ({topGenre}).
+                  <strong>Total Estimated Revenue</strong> is your estimated monthly earnings if you switch to the top trending genre ({topGenre}).
                   It's calculated using the genre's average views and an industry CPM of $3.50 per 1,000 views.
                 </p>
                 <p className="claims-modal-body">

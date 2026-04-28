@@ -299,17 +299,18 @@
 
 .claims-progress-track {
   margin-bottom: 8px;
-  height: 12px;
-  border-radius: 999px;
+  height: 30px;
+  border-radius: 20px;
   background: #3a3c4a;
   overflow: hidden;
 }
 
 .claims-progress-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: 20px;
   background: #9e77ed;
   box-shadow: inset 45px 4px 4px 5px rgba(126, 77, 227, 0.25);
+  min-width: 40px;
 }
 
 .claims-guarantee {
