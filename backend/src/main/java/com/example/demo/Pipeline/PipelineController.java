@@ -10,9 +10,17 @@ import java.util.List;
 public class PipelineController {
 
     private final PipelineDataService pipelineDataService;
-
-    public PipelineController(PipelineDataService pipelineDataService) {
+    private final ClaimsFetchScheduler claimsFetchScheduler;
+    
+    public PipelineController(PipelineDataService pipelineDataService, ClaimsFetchScheduler claimsFetchScheduler) {
         this.pipelineDataService = pipelineDataService;
+        this.claimsFetchScheduler = claimsFetchScheduler;
+    }
+
+    @PostMapping("/claims/fetch-from-ds")
+    public ResponseEntity<Map<String, Object>> fetchFromDs() {
+        claimsFetchScheduler.fetchAndIngestClaims();
+        return ResponseEntity.ok(Map.of("status", "ok"));
     }
 
     @PostMapping("/revenue/profile")
