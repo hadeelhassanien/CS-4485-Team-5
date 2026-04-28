@@ -17,7 +17,7 @@ public class NarrativeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Narrative>> getTopNarratives() {
+    public ResponseEntity<List<Narrative>> getNarratives() {
         return ResponseEntity.ok(narrativeService.getTopNarratives());
     }
 }
