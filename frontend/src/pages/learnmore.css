@@ -10,6 +10,33 @@
   max-width: 100%;
 }
 
+.learnmore-contributors {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.learnmore-contributors-label {
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  color: #8E93AB;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.learnmore-contributors-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 24px;
+}
+
+.learnmore-contributor {
+  font-size: 14px;
+  color: #BEC4DB;
+}
+
 .learnmore-header {
   display: flex;
   justify-content: space-between;

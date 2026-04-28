@@ -68,6 +68,21 @@ export default function Learnmore() {
           ))}
         </div>
       </div>
+      <div className="learnmore-contributors">
+        <p className="learnmore-contributors-label">Contributors</p>
+        <div className="learnmore-contributors-list">
+          {[
+            "Hadeel Hassanien",
+            "Claudia Nguyen",
+            "Kriti Raja",
+            "Sarah Huynh-Mai Truong",
+            "Keertana Lakshmi Valluru",
+            "Mariyam Zaki",
+          ].map((name) => (
+            <span key={name} className="learnmore-contributor">{name}</span>
+          ))}
+        </div>
+      </div>      
     </div>
   );
 }

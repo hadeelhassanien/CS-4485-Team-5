@@ -16,7 +16,7 @@ export default function Landing() {
             Narratives
           </NavLink>
           <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>
-            Claims
+            Revenue
           </NavLink>
         </nav>
 

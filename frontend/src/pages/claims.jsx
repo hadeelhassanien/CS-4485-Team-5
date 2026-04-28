@@ -176,14 +176,14 @@ export default function Claims() {
           <nav className="main__nav">
             <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
             <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
-            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Revenue</NavLink>
           </nav>
           <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
         </div>
       </header>
 
       <h1 className="claims-title">
-        Claims <span className="claims-title-accent">&middot; revenue &amp; performance</span>
+        <span className="claims-title-accent">revenue &amp; performance</span>
       </h1>
 
       <div className="claims-grid">
