@@ -1,11 +1,13 @@
 package com.example.demo.Claims;
 import com.example.demo.Trends.GamingGenre;
 import com.example.demo.Trends.GamingGenreRepository;
+import com.example.demo.Pipeline.RevenueModel;
+import com.example.demo.Pipeline.RevenueModelRepo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import org.springframework.transaction.annotation.Transactional;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -14,14 +16,17 @@ public class RevenueService {
 
     private final GamingGenreRepository genreRepository;
     private final ClaimRepository claimRepository;
+    private final RevenueModelRepo revenueModelRepo;
 
-    public RevenueService(GamingGenreRepository genreRepository, ClaimRepository claimRepository) {
+    public RevenueService(
+            GamingGenreRepository genreRepository,
+            ClaimRepository claimRepository,
+            RevenueModelRepo revenueModelRepo
+    ) {
         this.genreRepository = genreRepository;
         this.claimRepository = claimRepository;
+        this.revenueModelRepo = revenueModelRepo;
     }
-
-    private static final double BASE_CPM  = 2.0;  
-    private static final double TREND_CPM = 3.5;  
 
     public RevenueEstimateDTO getRevenueEstimate(String genre) {
         LocalDate today = LocalDate.now();
@@ -31,34 +36,65 @@ public class RevenueService {
             throw new IllegalArgumentException("Genre not found: " + genre);
         }
 
-        YearMonth month =YearMonth.from(today);
-        String periodStart =month.atDay(1).format(DateTimeFormatter.ofPattern("MMM d"));
-        String periodEnd =month.atEndOfMonth().format(DateTimeFormatter.ofPattern("MMM d"));
+        RevenueModel profile = revenueModelRepo
+                .findFirstByGenreNameAndEffectiveDateLessThanEqualOrderByEffectiveDateDescCreatedAtDesc(genre, today)
+                .or(() -> revenueModelRepo
+                        .findFirstByGenreNameAndEffectiveDateLessThanEqualOrderByEffectiveDateDescCreatedAtDesc("__default__", today))
+                .orElseThrow(() -> new IllegalStateException(
+                        "No revenue model profile found for genre '" + genre + "'. Load the data science revenue profile first."
+                ));
 
-        double baseRevenue =(snapshot.getViews() / 1000.0) * BASE_CPM;
-        double trendBoost =(snapshot.getViews() / 1000.0) * (TREND_CPM - BASE_CPM);
-        double totalRevenue =baseRevenue + trendBoost;
-        double alreadyClaimed = claimRepository.sumClaimedAmountsByGenre(genre);
-        double unclaimedBalance= Math.max(0, totalRevenue - alreadyClaimed);
+        YearMonth month = YearMonth.from(today);
+        String periodStart = month.atDay(1).format(DateTimeFormatter.ofPattern("MMM d"));
+        String periodEnd = month.atEndOfMonth().format(DateTimeFormatter.ofPattern("MMM d"));
 
-        String lastClaimDate   = "N/A";
+        /*
+         * Revenue Model
+         * views / 1000 = CPM units
+         * baseRevenue = CPM units * CPM
+         * trendMultiplier example:
+         * 1.15 = +15%
+         * 1.30 = +30%
+         */
+        double monetizedViews = snapshot.getViews() / 1000.0;
+
+        double baseRevenue = monetizedViews * profile.getBaseCpm();
+
+        double multiplier = profile.getTrendMultiplier();
+        if (multiplier < 1.0) {
+            multiplier = 1.0;
+        }
+
+        double trendBoost = baseRevenue * (multiplier - 1.0);
+
+        double totalEstimatedRevenue = baseRevenue + trendBoost;
+
+        double alreadyClaimed = claimRepository.sumAllClaimedAmounts();
+
+        double unclaimedBalance = Math.max(0, totalEstimatedRevenue - alreadyClaimed);
+
+        String lastClaimDate = "N/A";
         double lastClaimAmount = 0.0;
+
         var lastClaim = claimRepository.findMostRecentClaim();
         if (lastClaim.isPresent()) {
-            lastClaimDate   = lastClaim.get().getClaimDate().format(DateTimeFormatter.ofPattern("MMMM d, yyyy"));
+            lastClaimDate = lastClaim.get()
+                    .getClaimDate()
+                    .format(DateTimeFormatter.ofPattern("MMMM d, yyyy"));
+
             lastClaimAmount = lastClaim.get().getAmountClaimed();
         }
 
         return new RevenueEstimateDTO(
-            genre,
-            periodStart,
-            periodEnd,
-            round(baseRevenue),          // baseRevenue
-            round(trendBoost),           // trendBoost
-            round(totalRevenue),         // totalEstimatedRevenue
-            round(unclaimedBalance),
-            lastClaimDate,
-            lastClaimAmount
+                genre,
+                periodStart,
+                periodEnd,
+                round(baseRevenue),
+                round(trendBoost),
+                round(totalEstimatedRevenue),
+                round(unclaimedBalance),
+                lastClaimDate,
+                round(lastClaimAmount)
         );
     }
 
@@ -76,15 +112,24 @@ public class RevenueService {
                 LocalDate.now(),
                 LocalDateTime.now()
         );
+
         claimRepository.save(claim);
+
         return getRevenueEstimate(genre);
     }
 
     private GamingGenre getLatestSnapshot(String name, LocalDate today) {
         GamingGenre g = genreRepository.findByNameAndSnapshotDate(name, today);
-        if (g != null) return g;
+
+        if (g != null) {
+            return g;
+        }
+
         LocalDate prevDate = genreRepository.findPreviousSnapshotDate(today.plusDays(1));
-        return prevDate != null ? genreRepository.findByNameAndSnapshotDate(name, prevDate) : null;
+
+        return prevDate != null
+                ? genreRepository.findByNameAndSnapshotDate(name, prevDate)
+                : null;
     }
 
     private double round(double value) {

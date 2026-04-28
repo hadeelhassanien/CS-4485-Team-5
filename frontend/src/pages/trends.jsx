@@ -10,11 +10,11 @@ const GENRE_ICONS = {
   "Sports Sim":     "/icons/trends/sportsSim.svg",
   "Horror":         "/icons/trends/horror.svg",
   "Party / Casual": "/icons/trends/party.svg",
-  "Racing":      null,
-  "Simulation":  null,
-  "Puzzle":      null,
-  "Shooter":     null,
-  "Action":      null,
+  "Racing":      "/icons/trends/horror.svg",
+  "Simulation":  "/icons/trends/horror.svg",
+  "Puzzle":      "/icons/trends/horror.svg",
+  "Shooter":     "/icons/trends/horror.svg",
+  "Action":      "/icons/trends/horror.svg",
 };
 
 // Formats a raw number into a string with M or K as million or thousand  
@@ -38,26 +38,28 @@ const BASE = "https://165.232.136.214.sslip.io";
 
 export default function Trends() {
   const navigate = useNavigate();
-  const [selectedBlock, setSelectedBlock] = useState("before"); // auto-highlight 'before' on load
-  const [beforeGenre, setBeforeGenre]               = useState("Horror");
+
+  const [showPerfInfo, setShowPerfInfo] = useState(false);
+  const [showLeftInfo, setShowLeftInfo] = useState(false);
+  const [selectedBlock, setSelectedBlock]           = useState("before");
+  const [beforeGenre, setBeforeGenre]               = useState("Shooter");
   const [beforeDropdownOpen, setBeforeDropdownOpen] = useState(false);
+  const [genres, setGenres]                         = useState([]);
+  const [predicted, setPredicted]                   = useState([]);
+  const [reco, setReco]                             = useState(null);
+  const [loading, setLoading]                       = useState(true);
+  const [error, setError]                           = useState(null);
   const beforeDropdownRef = useRef(null);
 
   useEffect(() => {
-    function handleClickOutside(e) {
-      if (beforeDropdownRef.current && !beforeDropdownRef.current.contains(e.target)) {
-        setBeforeDropdownOpen(false);
+      function handleClickOutside(e) {
+        if (beforeDropdownRef.current && !beforeDropdownRef.current.contains(e.target)) {
+          setBeforeDropdownOpen(false);
+        }
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const [genres, setGenres]       = useState([]);
-  const [predicted, setPredicted] = useState([]);
-  const [reco, setReco]           = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []); 
 
   useEffect(() => {
     fetch(`${BASE}/api/genres`, {
@@ -89,6 +91,7 @@ export default function Trends() {
   // All genres with derived display fields — no slice, show every genre
   const maxViews = genres.length ? Math.max(...genres.map((g) => g.views)) : 1;
   const genreData = genres
+    .filter((g) => g.views > 0)
     .map((g) => {
       const change = Number(g.changePercent) || 0;
       return {
@@ -182,9 +185,27 @@ const topByChange = predicted.length
         {/* ── Left: Top Trending Genres ── */}
         <div className="trends-card trends-card--left">
           <div className="trends-card-header">
-            <img src="/icons/trends/topTrendingGenres.svg" alt="" className="trends-icon-sm" />
-            <span className="trends-card-header-text">TOP TRENDING GENRES (30D)</span>
+            <img src="/icons/trends/topTrendingGenres.svg" alt="" className="trends-icon-sm" style={{ width: "48px", height: "48px" }} />            <span className="trends-card-header-text">TOP TRENDING GENRES (BY VIEWS)</span>
+            <button className="claims-info-btn" style={{ marginLeft: "auto" }} onClick={() => setShowLeftInfo(true)}>?</button>
           </div>
+
+          {showLeftInfo && (
+            <div className="claims-modal-overlay" onClick={() => setShowLeftInfo(false)}>
+              <div className="claims-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="claims-modal-close" onClick={() => setShowLeftInfo(false)}>✕</button>
+                <h3 className="claims-modal-title">How to read this chart</h3>
+                <p className="claims-modal-body">
+                  <strong style={{ color: "#9E77ED" }}>Purple bar</strong> shows each genre's share of total viewership relative to the top genre.
+                </p>
+                <p className="claims-modal-body">
+                  <strong style={{ color: "#27d65c" }}>Green bar</strong> shows the genre's viewership trend over the past 30 days — how fast it's growing.
+                </p>
+                <p className="claims-modal-body">
+                  <strong style={{ color: "#d83333" }}>Red bar</strong> indicates a declining viewership trend.
+                </p>
+              </div>
+            </div>
+          )}
 
           {loading && <div className="trends-status-text">Loading genres…</div>}
           {error   && <div className="trends-status-text trends-status-text--error">Failed to load: {error}</div>}
@@ -198,18 +219,31 @@ const topByChange = predicted.length
                       {g.icon && <img src={g.icon} alt="" className="trends-icon-sm" />}
                       <span className="trends-genre-name">{g.name}</span>
                     </div>
-                    <span className="trends-genre-badge">{g.changeDisplay}</span>
                   </div>
+                  {/* Views bar */}
                   <div className="trends-bar-track">
-                    <div className="trends-bar-fill" style={{ width: `${g.percent}%` }}>
+                    <div className="trends-bar-fill" style={{ width: `${g.percent}%`, minWidth: g.percent > 0 ? "36px" : "0" }}>
                       <span className="trends-bar-fill-text">{g.percent}%</span>
                     </div>
                   </div>
+                  {/* Change percent bar */}
+                  {(() => {
+                    const changePct = Math.min(Math.abs(Math.round(g.changePercent * 100)), 100);
+                    return (
+                      <div className="trends-bar-track trends-bar-track--change">
+                        <div
+                          className={`trends-bar-fill trends-bar-fill--change${g.changePercent < 0 ? " trends-bar-fill--negative-change" : ""}`}
+                          style={{ width: `${changePct}%`, minWidth: "40px" }}
+                        >
+                          <span className="trends-bar-fill-text">{g.changeDisplay}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
           )}
-
         <div className="trends-footer-note">
           <img src="/icons/trends/bellIcon.svg" alt="" className="trends-icon-sm" />
           <div>
@@ -222,8 +256,28 @@ const topByChange = predicted.length
         </div>
         {/* ── Mid: Performance vs Trend Shift ── */}
         <div className="trends-card trends-card--mid">
-          <div className="trends-section-label">PERFORMANCE VS TREND SHIFT</div>
+          <div className="trends-section-label" style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ flex: 1, textAlign: "center" }}>PERFORMANCE VS TREND SHIFT</span>
+            <button className="claims-info-btn" onClick={() => setShowPerfInfo(true)}>?</button>
+          </div>
 
+          {showPerfInfo && (
+            <div className="claims-modal-overlay" onClick={() => setShowPerfInfo(false)}>
+              <div className="claims-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="claims-modal-close" onClick={() => setShowPerfInfo(false)}>✕</button>
+                <h3 className="claims-modal-title">How does this work?</h3>
+                <p className="claims-modal-body">
+                  <strong>Before</strong> shows your current genre's monthly views and trend direction. Select your genre from the dropdown to compare.
+                </p>
+                <p className="claims-modal-body">
+                  <strong>After</strong> shows the top trending genre's views — where the audience is moving right now.
+                </p>
+                <p className="claims-modal-body">
+                  <strong>Trend adoption payout</strong> is the estimated viewership uplift you'd gain by switching to the top genre.
+                </p>
+              </div>
+            </div>
+          )}
           {/* Before card */}
           <div
             className={`trends-before-card${selectedBlock === "before" ? " trends-perf-card--active" : ""}`}
@@ -234,11 +288,11 @@ const topByChange = predicted.length
                 className="trends-sub-card-label trends-sub-card-label--dropdown"
                 onClick={(e) => { e.stopPropagation(); setBeforeDropdownOpen((o) => !o); }}
               >
-                Before ({beforeGenre.toLowerCase()}) <span className="trends-dropdown-caret">{beforeDropdownOpen ? "▴" : "▾"}</span>
+                Before ({beforeGenre?.toLowerCase() ?? "..."}) <span className="trends-dropdown-caret">{beforeDropdownOpen ? "▴" : "▾"}</span>
               </div>
               {beforeDropdownOpen && (
                 <ul className="trends-genre-dropdown">
-                  {genres.map((g) => (
+                  {genres.filter(g => g.views > 0).map((g) => (
                     <li
                       key={g.name}
                       className={`trends-genre-dropdown-item${g.name === beforeGenre ? " trends-genre-dropdown-item--active" : ""}`}
@@ -256,7 +310,7 @@ const topByChange = predicted.length
             </div>
             {/**/}
             <div className="trends-engagement-down">
-              {beforeGenreData ? `${formatChange(Number(beforeGenreData.changePercent) || 0)} trend` : ""}
+              {beforeGenreData ? ` viewership trend ${formatChange(Number(beforeGenreData.changePercent) || 0)}` : ""}
             </div>
           </div>
 
@@ -273,7 +327,7 @@ const topByChange = predicted.length
               <span className="trends-value-unit">views</span>
             </div>
             <div className="trends-engagement-up">
-              {afterGenreData ? `↑ ${formatChange(afterGenreData.changePercent || 0)}` : ""}
+              {afterGenreData ? `viewership trend ${formatChange(afterGenreData.changePercent || 0)}` : ""}
             </div>
           </div>
 
@@ -355,7 +409,7 @@ const topByChange = predicted.length
                 reco.message
               ) : (
                 <>
-                  your top genre was <strong>{beforeGenre.toLowerCase()}</strong> — shift to{" "}
+                  your top genre was <strong>{beforeGenre?.toLowerCase() ?? "—"}</strong> — shift to{" "}
                   <strong>{topByChange[0]?.name?.toLowerCase() ?? "—"}</strong> now matches predicted{" "}
                   <strong>{growthDiff > 0 ? `+${growthDiff}%` : `${growthDiff}%`} growth.</strong>
                 </>

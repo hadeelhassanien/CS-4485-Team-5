@@ -7,6 +7,93 @@
   box-sizing: border-box;
 }
 
+.claims-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.claims-info-btn {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #8E93AB;
+  background: transparent;
+  color: #8E93AB;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: inherit;
+  min-width: 20px;
+  min-height: 20px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  line-height: 1;
+  aspect-ratio: 1 / 1;
+}
+
+
+.claims-info-btn:hover {
+  border-color: #C4A0FF;
+  color: #C4A0FF;
+}
+
+.claims-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.claims-modal {
+  background: #1F2129;
+  border: 1.5px solid #414552;
+  border-radius: 24px;
+  padding: 28px 32px;
+  max-width: 420px;
+  width: 90%;
+  position: relative;
+}
+
+.claims-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: #8E93AB;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.claims-modal-close:hover {
+  color: #fff;
+}
+
+.claims-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+.claims-modal-body {
+  font-size: 14px;
+  color: #BEC4DB;
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
 .claims-header {
   display: flex;
   align-items: center;
@@ -212,17 +299,18 @@
 
 .claims-progress-track {
   margin-bottom: 8px;
-  height: 12px;
-  border-radius: 999px;
+  height: 30px;
+  border-radius: 20px;
   background: #3a3c4a;
   overflow: hidden;
 }
 
 .claims-progress-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: 20px;
   background: #9e77ed;
   box-shadow: inset 45px 4px 4px 5px rgba(126, 77, 227, 0.25);
+  min-width: 40px;
 }
 
 .claims-guarantee {
