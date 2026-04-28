@@ -75,6 +75,6 @@ CREATE TABLE IF NOT EXISTS extracted_video_claim (
     genre_name VARCHAR(255) NULL,
     PRIMARY KEY (id),
     INDEX idx_extracted_video_claim_video_id (video_id),
-    INDEX idx_extracted_video_claim_claim_category (claim_category)
-    INDEX idx_extracted_video_claim_genre_name (genre_name),
+    INDEX idx_extracted_video_claim_claim_category (claim_category),
+    INDEX idx_extracted_video_claim_genre_name (genre_name)
 );

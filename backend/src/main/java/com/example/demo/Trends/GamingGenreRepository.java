@@ -11,7 +11,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface GamingGenreRepository extends JpaRepository<GamingGenre, Long> {
     
-    GamingGenre findByNameAndSnapshotDate(String name, LocalDate snapshotDate);
+    @Query("SELECT g FROM GamingGenre g WHERE LOWER(g.name) = LOWER(:name) AND g.snapshotDate = :date")
+    GamingGenre findByNameAndSnapshotDate(@Param("name") String name, @Param("date") LocalDate snapshotDate);
 
     List<GamingGenre> findBySnapshotDate(LocalDate snapshotDate);
 

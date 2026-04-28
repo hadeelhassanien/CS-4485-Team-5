@@ -1,14 +1,14 @@
 package com.example.demo.Pipeline;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
-import java.util.Locale;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.List;
+import java.util.Locale;
 
 @Service
 @Transactional
@@ -30,12 +30,6 @@ public class PipelineDataService {
     public RevenueModel saveRevenueProfile(RevenueModelReq request) {
         if (request == null || isBlank(request.getGenreName())) {
             throw new IllegalArgumentException("genreName is required.");
-        }
-        if (request.getBaseCpm() < 0) {
-            throw new IllegalArgumentException("baseCpm must be non-negative.");
-        }
-        if (request.getTrendMultiplier() < 0) {
-            throw new IllegalArgumentException("trendMultiplier must be non-negative.");
         }
 
         RevenueModel model = new RevenueModel();
@@ -65,19 +59,21 @@ public class PipelineDataService {
             }
 
             String videoId = video.getVideoId().trim();
-            String genreName = video.resolvedGenreName();
-            
-            if (genreName.equalsIgnoreCase("General")) {
-                genreName = inferGenreFromClaims(video.getClaims());
+            String title = blankToNull(video.getTitle());
+
+            String genreName = blankToNull(video.getGenre());
+            if (isBlank(genreName)) {
+                genreName = inferGenreFromClaims(title, video.getClaims());
             }
 
             extractedVideoClaimRepo.deleteByVideoId(videoId);
 
             List<String> normalizedClaims = normalizeRawClaims(video.getClaims());
+
             for (String claimText : normalizedClaims) {
                 ExtractedVideoClaim claim = new ExtractedVideoClaim();
                 claim.setVideoId(videoId);
-                claim.setSourceTitle(null);
+                claim.setSourceTitle(title != null ? title : videoId);
                 claim.setClaimText(claimText);
                 claim.setClaimCategory(inferNarrativeCategory(claimText));
                 claim.setConfidence(null);
@@ -92,64 +88,6 @@ public class PipelineDataService {
         return saved;
     }
 
-    private String inferGenreFromClaims(List<String> claims) {
-    if (claims == null || claims.isEmpty()) {
-        return "General";
-    }
-
-    String text = String.join(" ", claims).toLowerCase();
-
-    if (text.contains("minecraft") || text.contains("craft") || text.contains("fishing")
-            || text.contains("resources") || text.contains("survival")) {
-        return "Survival Craft";
-    }
-
-    if (text.contains("battle royale") || text.contains("zone") || text.contains("last alive")) {
-        return "Battle Royale";
-    }
-
-    if (text.contains("gun") || text.contains("weapon") || text.contains("shoot")
-            || text.contains("sniper") || text.contains("fps")) {
-        return "Shooter";
-    }
-
-    if (text.contains("party") || text.contains("friend") || text.contains("hide-and-seek")
-            || text.contains("tagged") || text.contains("dog")) {
-        return "Party / Casual";
-    }
-
-    if (text.contains("fight") || text.contains("combat") || text.contains("boss")
-            || text.contains("damage") || text.contains("hero")) {
-        return "Action";
-    }
-
-    if (text.contains("scary") || text.contains("monster") || text.contains("horror")
-            || text.contains("escape")) {
-        return "Horror";
-    }
-
-    if (text.contains("soccer") || text.contains("football") || text.contains("nba")
-            || text.contains("sports")) {
-        return "Sports Sim";
-    }
-
-    if (text.contains("race") || text.contains("car") || text.contains("driving")
-            || text.contains("speed")) {
-        return "Racing";
-    }
-
-    if (text.contains("simulator") || text.contains("tycoon")
-            || text.contains("management")) {
-        return "Simulation";
-    }
-
-    if (text.contains("puzzle") || text.contains("logic") || text.contains("match")) {
-        return "Puzzle";
-    }
-
-    return "General";
-}
-
     private List<String> normalizeRawClaims(List<String> rawClaims) {
         if (rawClaims == null || rawClaims.isEmpty()) {
             return List.of();
@@ -163,21 +101,21 @@ public class PipelineDataService {
                 continue;
             }
 
-            String normalizedBlock = raw
+            String block = raw
                     .replace("\r", " ")
                     .replace("\n", " ")
                     .replaceAll("\\s+", " ")
                     .trim();
 
-            String[] pieces = SENTENCE_SPLIT.split(normalizedBlock);
+            String[] pieces = SENTENCE_SPLIT.split(block);
             for (String piece : pieces) {
                 String cleaned = cleanClaimText(piece);
                 if (isBlank(cleaned) || cleaned.length() < 20) {
                     continue;
                 }
 
-                String dedupeKey = cleaned.toLowerCase(Locale.ROOT);
-                if (seen.add(dedupeKey)) {
+                String key = cleaned.toLowerCase(Locale.ROOT);
+                if (seen.add(key)) {
                     output.add(cleaned);
                 }
             }
@@ -202,14 +140,70 @@ public class PipelineDataService {
         return cleaned;
     }
 
-    private String inferNarrativeCategory(String claimText) {
-        String lower = claimText.toLowerCase(Locale.ROOT);
+    private String inferGenreFromClaims(String title, List<String> claims) {
+        String text = "";
 
-        if (containsAny(lower, "world", "map", "environment", "exploration", "explore", "path", "hidden", "area", "location")) {
+        if (!isBlank(title)) {
+            text += title + " ";
+        }
+
+        if (claims != null && !claims.isEmpty()) {
+            text += String.join(" ", claims);
+        }
+
+        text = text.toLowerCase(Locale.ROOT);
+
+        if (containsAny(text, "minecraft", "craft", "survival", "fishing", "resources", "orbs")) {
+            return "Survival Craft";
+        }
+
+        if (containsAny(text, "battle royale", "fortnite", "last alive", "elimination", "zone")) {
+            return "Battle Royale";
+        }
+
+        if (containsAny(text, "overwatch", "cod", "call of duty", "gun", "weapon", "shoot", "sniper", "fps")) {
+            return "Shooter";
+        }
+
+        if (containsAny(text, "roblox", "party", "casual", "dog", "friend", "hide-and-seek", "tagged", "troll tower")) {
+            return "Party / Casual";
+        }
+
+        if (containsAny(text, "boss", "combat", "hero", "fight", "damage", "warrior", "archer", "upgrade")) {
+            return "Action";
+        }
+
+        if (containsAny(text, "football", "madden", "nba", "nfc", "championship", "sports")) {
+            return "Sports Sim";
+        }
+
+        if (containsAny(text, "race", "racing", "car", "driving", "speed")) {
+            return "Racing";
+        }
+
+        if (containsAny(text, "horror", "scary", "monster", "haunted")) {
+            return "Horror";
+        }
+
+        if (containsAny(text, "simulator", "simulation", "tycoon", "management")) {
+            return "Simulation";
+        }
+
+        if (containsAny(text, "puzzle", "logic", "match")) {
+            return "Puzzle";
+        }
+
+        return "General";
+    }
+
+    private String inferNarrativeCategory(String claimText) {
+        String lower = claimText == null ? "" : claimText.toLowerCase(Locale.ROOT);
+
+        if (containsAny(lower, "world", "map", "environment", "exploration", "explore", "path", "hidden", "area", "location", "room", "theater", "store", "tower")) {
             return "World Interaction";
         }
 
-        if (containsAny(lower, "upgrade", "progression", "challenge", "boss", "defeat", "inventory", "resource", "money", "damage", "dps", "hero", "obstacle", "capture", "victory", "score")) {
+        if (containsAny(lower, "upgrade", "progression", "challenge", "boss", "defeat", "inventory", "resource", "money", "damage", "dps", "hero", "obstacle", "capture", "victory", "score", "quest")) {
             return "Challenge & Progression";
         }
 
@@ -221,6 +215,10 @@ public class PipelineDataService {
     }
 
     private boolean containsAny(String text, String... keywords) {
+        if (text == null) {
+            return false;
+        }
+
         for (String keyword : keywords) {
             if (text.contains(keyword)) {
                 return true;

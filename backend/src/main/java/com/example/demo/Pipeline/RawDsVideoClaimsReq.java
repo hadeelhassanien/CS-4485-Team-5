@@ -1,18 +1,18 @@
 package com.example.demo.Pipeline;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RawDsVideoClaimsReq {
-    @JsonProperty("video_id")
+    @JsonAlias({"video_id", "videoId"})
     private String videoId;
 
-    @JsonProperty("genre")
-    private String genre;
+    @JsonAlias({"title", "video_title"})
+    private String title;
 
-    @JsonProperty("genre_name")
-    private String genreName;
+    @JsonAlias({"genre", "genre_name"})
+    private String genre;
 
     private List<String> claims;
 
@@ -20,37 +20,15 @@ public class RawDsVideoClaimsReq {
         return videoId;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
     public String getGenre() {
         return genre;
     }
 
-    public String getGenreName() {
-        return genreName;
-    }
-
     public List<String> getClaims() {
         return claims;
-    }
-
-    public void setVideoId(String videoId) {
-        this.videoId = videoId;
-    }
-
-    public void setGenre(String genre) {
-        this.genre = genre;
-    }
-
-    public void setGenreName(String genreName) {
-        this.genreName = genreName;
-    }
-
-    public void setClaims(List<String> claims) {
-        this.claims = claims;
-    }
-
-    public String resolvedGenreName() {
-        if (genreName != null && !genreName.isBlank()) return genreName.trim();
-        if (genre != null && !genre.isBlank()) return genre.trim();
-        return "General";
     }
 }
