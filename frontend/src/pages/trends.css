@@ -12,6 +12,13 @@
   box-sizing: border-box;
 }
 
+.trends-bar-col-pct {
+  font-size: 15px;
+  color: #9E77ED;
+  margin-top: 2px;
+  text-align: center;
+}
+
 .trends-bar-track,
 .trends-bar-track--change {
   position: relative;
