@@ -7,7 +7,7 @@ const BASE = "https://165.232.136.214.sslip.io";
 export default function Claims() {
   const navigate = useNavigate();
   const [genres, setGenres] = useState([]);
-  const [fromGenre, setFromGenre] = useState("shooter");
+  const [fromGenre, setFromGenre] = useState(null);
   const [topGenre, setTopGenre] = useState(null);
   const [topGenreData, setTopGenreData] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
@@ -18,7 +18,6 @@ export default function Claims() {
   const [loadingRevenue, setLoadingRevenue] = useState(false);
   const [errorBreakdown, setErrorBreakdown] = useState(null);
   const [errorRevenue, setErrorRevenue] = useState(null);
-  const [claiming, setClaiming] = useState(false);
   const [fromDropdownOpen, setFromDropdownOpen] = useState(false);
   const [showRevenueInfo, setShowRevenueInfo] = useState(false);
   const fromDropdownRef = useRef(null);
@@ -44,6 +43,7 @@ export default function Claims() {
         const top = [...data].sort((a, b) => b.views - a.views)[0];
         setTopGenre(top?.name ?? null);
         setTopGenreData(top ?? null);
+        setFromGenre(data.find(g => g.views > 0)?.name ?? null);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoadingGenres(false));
@@ -101,8 +101,9 @@ export default function Claims() {
   const totalEstimatedRevenue = topRevenue?.totalEstimatedRevenue ?? null;
   const baseRevenue = fromRevenue?.totalEstimatedRevenue ?? null;
   // Use trendBoost directly from API
-  const trendBoost = topRevenue?.trendBoost ?? null;
-  const unclaimedBalance = topRevenue?.unclaimedBalance ?? null;
+  const trendBoost = (topRevenue && fromRevenue)
+  ? topRevenue.totalEstimatedRevenue - fromRevenue.totalEstimatedRevenue
+  : null;
 
   const profitMultiplier = (topRevenue && fromRevenue && fromRevenue.totalEstimatedRevenue > 0)
     ? (topRevenue.totalEstimatedRevenue / fromRevenue.totalEstimatedRevenue).toFixed(1)

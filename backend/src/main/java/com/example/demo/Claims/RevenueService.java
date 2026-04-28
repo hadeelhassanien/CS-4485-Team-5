@@ -82,7 +82,7 @@ public class RevenueService {
 
         double totalEstimatedRevenue = baseRevenue + trendBoost;
 
-        double alreadyClaimed = claimRepository.sumAllClaimedAmounts();
+        double alreadyClaimed = claimRepository.sumClaimedAmountsByGenre(genre);
 
         double unclaimedBalance = Math.max(0, totalEstimatedRevenue - alreadyClaimed);
 
