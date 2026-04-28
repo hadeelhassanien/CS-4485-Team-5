@@ -22,12 +22,22 @@ public class ClaimsController {
     }
 
     @GetMapping("/revenue")
-    public ResponseEntity<RevenueEstimateDTO> getRevenueEstimate(@RequestParam String genre) {
+    public ResponseEntity<RevenueEstimateDTO> getRevenueEstimate(@RequestParam(defaultValue = "Action") String genre) {
         return ResponseEntity.ok(revenueService.getRevenueEstimate(genre));
     }
 
     @PostMapping("/claim")
     public ResponseEntity<RevenueEstimateDTO> claimEarnings(@RequestParam String genre) {
         return ResponseEntity.ok(revenueService.claimEarnings(genre));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleBadGenre(IllegalArgumentException ex) {
+        return ResponseEntity.status(404).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleNoBalance(IllegalStateException ex) {
+        return ResponseEntity.status(400).body(ex.getMessage());
     }
 }
