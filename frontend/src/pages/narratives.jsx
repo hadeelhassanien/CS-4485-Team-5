@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 import "./narratives.css";
 
-const BASE = "https://165.232.136.214.sslip.io";
+const BASE = "http://localhost:8080";
 
 export default function Narratives() {
   const navigate = useNavigate();
