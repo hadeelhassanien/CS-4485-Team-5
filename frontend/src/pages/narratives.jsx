@@ -186,7 +186,7 @@ export default function Narratives() {
           <nav className="main__nav">
             <NavLink to="/trends" className={({ isActive }) => (isActive ? "active" : "")}>Trends</NavLink>
             <NavLink to="/narratives" className={({ isActive }) => (isActive ? "active" : "")}>Narratives</NavLink>
-            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Claims</NavLink>
+            <NavLink to="/claims" className={({ isActive }) => (isActive ? "active" : "")}>Revenue</NavLink>
           </nav>
           <img src="/icons/claims/houseIcon.svg" alt="Home" className="claims-home-btn" onClick={() => navigate("/")} />
         </div>
