@@ -136,15 +136,20 @@ const topByChange = predicted.length
   : [...genreData].sort((a, b) => b.views - a.views).slice(0, 5);
 
   const maxBarVal = barSource.length
-    ? Math.max(...barSource.map((g) => (predicted.length ? g.predictedViews || 1 : g.changePercent)), 1)
+    ? Math.max(...barSource.map((g) => Math.abs(predicted.length ? g.predictedGrowthPercent : g.changePercent * 100)), 1)
     : 1;
 
-  const barData = barSource.map((g) => ({
-    label: g.name.split(" ")[0],
-    height: Math.round(
-      ((predicted.length ? g.predictedViews || 0 : g.changePercent) / maxBarVal) * MAX_BAR_HEIGHT
-    ),
-  }));
+  const barData = barSource.map((g) => {
+    const pct = Math.round(predicted.length ? g.predictedGrowthPercent : g.changePercent * 100);
+    return {
+      label: g.name.split(" ")[0],
+      height: Math.round((Math.abs(pct) / maxBarVal) * MAX_BAR_HEIGHT),
+      pct,
+      pctDisplay: pct > 0 ? `+${pct}%` : `${pct}%`,
+      isNegative: pct < 0,
+      barColor: pct < 0 ? "#FF7B7B" : "#9570FB",
+    };
+  });
 
   // Stats for selected block
   const activeGenreData =
@@ -288,7 +293,7 @@ const topByChange = predicted.length
                 className="trends-sub-card-label trends-sub-card-label--dropdown"
                 onClick={(e) => { e.stopPropagation(); setBeforeDropdownOpen((o) => !o); }}
               >
-                Before ({beforeGenre?.toLowerCase() ?? "..."}) <span className="trends-dropdown-caret">{beforeDropdownOpen ? "▴" : "▾"}</span>
+                Before ({beforeGenre ?? "..."}) <span className="trends-dropdown-caret">{beforeDropdownOpen ? "▴" : "▾"}</span>
               </div>
               {beforeDropdownOpen && (
                 <ul className="trends-genre-dropdown">
@@ -370,10 +375,10 @@ const topByChange = predicted.length
           <div className="trends-bar-chart" style={{ marginTop: "24px" }}>
             {barData.map((b, i) => (
               <div key={b.label} className="trends-bar-col">
-                <div className="trends-bar-rect" style={{ height: b.height }} />
+                <div className="trends-bar-rect" style={{ height: b.height, background: b.barColor }} />
                 <span className="trends-bar-col-label">{b.label}</span>
-                <span className="trends-bar-col-pct">
-                  {barSource[i] ? `+${Math.round((predicted.length ? barSource[i].predictedGrowthPercent : barSource[i].changePercent * 100))}%` : ""}
+                <span className="trends-bar-col-pct" style={{ color: b.isNegative ? "#FF7B7B" : "#9E77ED" }}>
+                  {b.pctDisplay}
                 </span>
               </div>
             ))}
