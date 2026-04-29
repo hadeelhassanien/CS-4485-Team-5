@@ -220,7 +220,7 @@ export default function Claims() {
                     aria-expanded={fromDropdownOpen}
                   >
                     <span className="claims-genre-trigger__label">your genre</span>
-                    <span className="claims-genre-trigger__value">{fromGenre}</span>
+                    <span className="claims-genre-trigger__value" style={{ textTransform: "capitalize" }}>{fromGenre.toLowerCase()}</span>
                     <span className="claims-genre-trigger__caret">{fromDropdownOpen ? "▴" : "▾"}</span>
                   </button>
 
